@@ -1,0 +1,31 @@
+TOOLS USED — SOC Log Analyzer Project
+======================================
+
+ATTACK SIMULATION
+-----------------
+- Hydra v9.x          : SSH brute force tool
+- Kali Linux          : Attacker OS (VM)
+- rockyou.txt         : Password wordlist (/usr/share/wordlists/)
+
+TARGET ENVIRONMENT
+------------------
+- Ubuntu Server 22.04 : Victim machine (VM)
+- OpenSSH Server      : SSH service being attacked
+- /var/log/auth.log   : Primary log file analyzed
+
+ANALYSIS TOOLS
+--------------
+- Python 3.x          : Log parsing & detection script
+- grep / awk          : Manual log filtering (Linux CLI)
+- json (stdlib)       : Structured report output
+- re (stdlib)         : Regex-based pattern matching
+
+VIRTUALIZATION
+--------------
+- VirtualBox / VMware : Lab environment
+- Host-only adapter   : Isolated network between VMs
+
+DOCUMENTATION
+-------------
+- Markdown            : README documentation
+- Git / GitHub        : Version control & portfolio hosting
