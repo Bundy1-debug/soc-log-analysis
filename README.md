@@ -167,6 +167,6 @@ Never run brute force tools against systems you do not own or have explicit perm
 
 ## 👤 Author
 
-**[Your Name]**  
+**[Daoudi Haitham]**  
 Cybersecurity Student | Aspiring SOC Analyst  
-[LinkedIn](https://linkedin.com/in/yourprofile) · [GitHub](https://github.com/yourusername)
+[LinkedIn](https://www.linkedin.com/in/haitham-daoudi-905a34251/) · [GitHub](https://github.com/Bundy1-debug)
