@@ -1,4 +1,191 @@
-# 🔍 SOC Log Analyzer — SSH Brute Force Detection
+# SOC Log Analyzer — SSH Brute-Force Detection
+
+A lightweight Python tool that parses Linux authentication logs (`auth.log`), flags IPs showing SSH brute-force behaviour, classifies their severity and produces a JSON report. It comes with a small Flask web interface for uploading and analysing a log file in the browser.
+
+Built as a hands-on exercise in Tier-1 SOC analysis: simulate an attack in an isolated lab, collect the logs, then detect it.
+
+---
+
+## Features
+
+| Feature | Details |
+|---|---|
+| Log parsing | Regex-based extraction of `Failed password`, `Invalid user` and `Accepted` events from `auth.log` |
+| Brute-force detection | Flags any IP with **5 or more** failed attempts (configurable threshold) |
+| Severity classification | 4 levels based on the number of failed attempts (see below) |
+| Compromise indicator | Warns when a flagged IP also has a **successful login** in the log |
+| Usernames tried | Lists the invalid usernames attempted by each flagged IP |
+| Reports | Coloured terminal report + structured JSON output (`report_output.json`) |
+| Web interface | Flask app: upload an `auth.log` or analyse the bundled sample, view results in a dashboard |
+
+### Severity levels
+
+| Severity | Failed attempts |
+|---|---|
+| CRITICAL | 100+ |
+| HIGH | 30 – 99 |
+| MEDIUM | 10 – 29 |
+| LOW | 5 – 9 |
+
+---
+
+## Lab environment
+
+| Role | Machine |
+|---|---|
+| Attacker | Kali Linux VM (Hydra) |
+| Target | Ubuntu Server 22.04 VM (OpenSSH) |
+| Network | Host-only adapter, fully isolated |
+| Log source | `/var/log/auth.log` on the target |
+
+All attack simulation was performed in this isolated lab, against machines I own.
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/Bundy1-debug/soc-log-analysis.git
+cd soc-log-analysis
+```
+
+The command-line analyzer only uses the Python 3 standard library.
+For the web interface:
+
+```bash
+pip install -r webapp/requirements.txt
+```
+
+---
+
+## Usage
+
+### Command line
+
+```bash
+# Analyse the bundled sample log
+python3 src/log_analyzer.py sample_auth.log
+
+# Analyse a real log (requires read access)
+sudo python3 src/log_analyzer.py /var/log/auth.log
+```
+
+### Web interface
+
+```bash
+cd webapp
+python3 app.py
+```
+
+Then open http://127.0.0.1:5000, upload an `auth.log` file or click the sample-analysis button.
+
+---
+
+## Sample output
+
+Run on the included `sample_auth.log`:
+
+```
+============================================================
+      SOC LOG ANALYZER — BRUTE FORCE DETECTION REPORT
+============================================================
+  Threshold : 5 failed attempts
+
+  Total IPs with failed logins : 3
+  Total failed attempts        : 21
+  Successful logins            : 3
+  Suspicious IPs flagged       : 2
+
+  [1] 192.168.1.105
+       Severity     : MEDIUM
+       Failed tries : 12
+       Users tried  : oracle
+       ⚠ WARNING: Successful login detected from this IP!
+
+  [2] 10.0.0.23
+       Severity     : LOW
+       Failed tries : 6
+       Users tried  : postgres
+============================================================
+```
+
+JSON report excerpt:
+
+```json
+{
+  "summary": {
+    "total_ips_with_failures": 3,
+    "total_failed_attempts": 21,
+    "total_successful_logins": 3,
+    "flagged_ips": 2
+  },
+  "alerts": [
+    {
+      "ip": "192.168.1.105",
+      "failed_count": 12,
+      "users_tried": ["oracle"],
+      "post_success": true,
+      "severity": "MEDIUM"
+    }
+  ]
+}
+```
+
+---
+
+## Project structure
+
+```
+soc-log-analysis/
+├── src/
+│   └── log_analyzer.py      # CLI detection engine
+├── webapp/
+│   ├── app.py               # Flask web interface
+│   ├── templates/index.html # Dashboard template
+│   ├── requirements.txt
+│   └── sample_auth.log
+├── sample_auth.log          # Sample log (no real data)
+├── report_output.json       # Example JSON report
+├── Tools-used.txt
+└── README.md
+```
+
+---
+
+## Current limitations
+
+- Detection is based on the **total** number of failures per IP; there is no time window yet.
+- `post_success` means the IP has at least one successful login anywhere in the log; the order of events (before or after the failures) is not checked yet.
+- Only SSH events from `auth.log` are supported.
+
+## Roadmap
+
+- [x] Web dashboard with Flask
+- [ ] Time-window detection (e.g. N failures within 60 seconds)
+- [ ] Order-aware compromise alert (success **after** the failures)
+- [ ] MITRE ATT&CK mapping (T1110 — Brute Force)
+- [ ] Equivalent Sigma rule, tested in a SIEM (Wazuh / ELK)
+- [ ] IP geolocation and real-time mode (`tail -f`)
+
+---
+
+## Lessons learned
+
+- Brute-force attacks generate hundreds of log lines: automation is essential.
+- A successful login from an IP with many failures is a high-priority indicator of compromise.
+- Threshold tuning is a trade-off between false positives and missed attacks.
+- In production, this logic belongs in a SIEM correlated with other sources.
+
+---
+
+## Disclaimer
+
+For educational purposes only. Only analyse logs and test systems you own or are explicitly authorised to assess.
+
+## Author
+
+**Haitham Daoudi** — Cybersecurity engineering student, ENSA Oujda
+[LinkedIn](https://www.linkedin.com/in/haitham-daoudi) · [GitHub](https://github.com/Bundy1-debug)# 🔍 SOC Log Analyzer — SSH Brute Force Detection
 
 > A lightweight Python-based Security Operations tool for detecting SSH brute force attacks by analyzing Linux authentication logs.
 
@@ -157,13 +344,6 @@ soc-log-analysis/
 
 ---
 
-## ⚠️ Disclaimer
-
-This project is for **educational purposes only**.  
-All attack simulations were performed in an **isolated, controlled lab environment**.  
-Never run brute force tools against systems you do not own or have explicit permission to test.
-
----
 
 ## 👤 Author
 
