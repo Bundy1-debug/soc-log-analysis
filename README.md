@@ -24,7 +24,7 @@ The tool parses `/var/log/auth.log`, identifies suspicious IPs, classifies their
 ---
 
 ## 🧪 Methodology
-
+Bundy1-debug
 ### Step 1 — Set up the lab
 
 - Attacker machine: Kali Linux (VM)
@@ -51,7 +51,7 @@ sudo cat /var/log/auth.log | grep "Failed password"
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/soc-log-analysis.git
+git clone https://github.com/Bundy1-debug/soc-log-analysis.git
 cd soc-log-analysis
 
 # Run against real logs (requires sudo or log access)
