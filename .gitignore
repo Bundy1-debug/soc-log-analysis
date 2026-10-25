@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated reports (run the analyzer to recreate)
+report_output.json
+*.report.json
+
+# Runtime / local
+uploads/
+.env
+*.log
+!sample_auth.log
+!samples/*.log
