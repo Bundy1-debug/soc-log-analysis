@@ -136,6 +136,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .tc-ssh{background:rgba(139,92,246,.15);color:var(--purple);}
 .tc-http{background:rgba(245,158,11,.15);color:var(--orange);}
 .tc-dns{background:rgba(6,182,212,.15);color:var(--cyan);}
+.tc-host{background:rgba(16,185,129,.15);color:var(--green);}
 .tab-panel{display:none;padding:0;}
 .tab-panel.active{display:block;}
 
@@ -343,10 +344,12 @@ label.drop-zone{display:block;}
         <button class="tab-btn active" type="button" data-tab="ssh">SSH <span class="tab-count tc-ssh" id="tc-ssh">0</span></button>
         <button class="tab-btn" type="button" data-tab="http">HTTP <span class="tab-count tc-http" id="tc-http">0</span></button>
         <button class="tab-btn" type="button" data-tab="dns">DNS <span class="tab-count tc-dns" id="tc-dns">0</span></button>
+        <button class="tab-btn" type="button" data-tab="host">Host <span class="tab-count tc-host" id="tc-host">0</span></button>
       </div>
       <div class="tab-panel active" id="tab-ssh"></div>
       <div class="tab-panel" id="tab-http"></div>
       <div class="tab-panel" id="tab-dns"></div>
+      <div class="tab-panel" id="tab-host"></div>
     </section>
 
     <!-- RAW JSON -->

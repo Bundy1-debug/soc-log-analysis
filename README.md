@@ -30,6 +30,10 @@ Simulate real attacks in an isolated lab and build the tool a Tier-1 SOC analyst
 | DGA domains | BIND query log | Long, high-entropy labels (Shannon entropy ≥ 3.5) | T1568.002 Domain Generation Algorithms |
 | **DNS tunneling / exfiltration** | BIND query log | Per host + parent domain: ≥ 2 of many unique subdomains, long labels, encoded (hex/base32/base64) labels, TXT/NULL-heavy; estimates KB carried | T1048.003 Exfiltration Over Alternative Protocol |
 | **C2 beaconing** | BIND query log | ≥ 8 lookups of one domain at regular intervals (jitter ≤ 20 %, interval ≥ 10 s) | T1071.004 DNS |
+| Sudo abuse | `auth.log` | Repeated failed sudo, or any "user NOT in sudoers" (per user) | T1548.003 Sudo |
+| Su brute force | `auth.log` | ≥ 3 failed `su` attempts by one user | T1548.003 |
+| **New account created** | `auth.log` | `useradd` added a local account | T1136.001 Local Account |
+| **Privileged group grant** | `auth.log` | A user added to `sudo`/`root`/`wheel`/`admin` | T1098 Account Manipulation |
 
 **Correlation:** all alerts from one IP become one incident. An incident spanning several ATT&CK tactics is escalated one level; a breach is always CRITICAL. Each incident gets a merged timeline and recommended response steps.
 
@@ -48,7 +52,10 @@ webapp/app.py ───────┘                     (Flask dashboard)
 
 soc_analyzer/
 ├── parsers.py       raw lines → normalized Event objects
-├── detections.py    rules with sliding windows → alerts (severity, ATT&CK, evidence)
+├── detections.py    SSH + core web rules → alerts (severity, ATT&CK, evidence)
+├── detections_web.py  login/dir brute force, webshell, large transfer
+├── detections_dns.py  DNS tunneling / exfiltration, C2 beaconing
+├── detections_host.py sudo/su abuse, new accounts, privilege grants
 ├── intel.py         IOC blocklists from intel/
 ├── mitre.py         ATT&CK technique / tactic table
 ├── correlation.py   alerts → incidents (timeline + response playbook)

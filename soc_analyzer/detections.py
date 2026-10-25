@@ -50,7 +50,18 @@ def describe(e):
     if e.source == "http":
         path = d["path"] if len(d["path"]) <= 120 else d["path"][:117] + "..."
         return f"{d['method']} {path} -> {d['status']} ({d['agent'].split('/')[0] or '-'})"
-    return f"query {d['domain']} ({d['qtype']})"
+    if e.source == "dns":
+        return f"query {d['domain']} ({d['qtype']})"
+    # host events
+    if e.action in ("sudo_run", "sudo_fail"):
+        return f"sudo by {e.user}: {d.get('command') or d.get('reason')}"
+    if e.action in ("su_ok", "su_fail"):
+        return f"su to {d['target']} by {e.user}" + (" (failed)" if e.action == "su_fail" else "")
+    if e.action == "user_add":
+        return f"{d['proc']}: new user {e.user}"
+    if e.action == "group_add":
+        return f"{d['proc']}: added {e.user} to group {d['group']}"
+    return f"{e.action} {e.user}"
 
 
 def evidence(events):

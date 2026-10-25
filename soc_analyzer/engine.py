@@ -11,6 +11,7 @@ from .correlation import build_incidents
 from .detections import (SEVERITIES, apply_ip_intel, detect_dns, detect_http,
                          detect_ssh_breach, detect_ssh_brute_force)
 from .detections_dns import detect_dns_beaconing, detect_dns_tunneling, split_domain
+from .detections_host import run_host
 from .detections_web import (detect_directory_brute_force, detect_large_transfer,
                              detect_web_login_brute_force, detect_webshell)
 from .intel import load_intel
@@ -43,7 +44,8 @@ def run_all(events, intel=None):
               + detect_http(events) + detect_dns(events, intel)
               + detect_dns_tunneling(events) + detect_dns_beaconing(events)
               + detect_web_login_brute_force(events) + detect_directory_brute_force(events)
-              + detect_webshell(events) + detect_large_transfer(events))
+              + detect_webshell(events) + detect_large_transfer(events)
+              + run_host(events))
     return apply_ip_intel(suppress_overlaps(alerts), intel)
 
 
@@ -83,7 +85,7 @@ def analyze(lines, sources=None, year=None, intel=None, geo=False):
             "lines_read":       len(lines),
             "events_parsed":    len(events),
             "events_by_source": dict(by_source),
-            "unique_ips":       len({e.ip for e in events}),
+            "unique_ips":       len({e.ip for e in events if e.ip}),
             "ssh_failures":     sum(1 for e in events if e.source == "ssh" and e.action == "failed"),
             "ssh_successes":    sum(1 for e in events if e.source == "ssh" and e.action == "accepted"),
             "alerts":           len(alerts),

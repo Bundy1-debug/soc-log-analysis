@@ -25,6 +25,11 @@ WEBSHELL_MIN_POSTS     = 3      # POSTs to a script in an upload folder
 HTTP_LARGE_RESPONSE_BYTES = 50 * 1024 * 1024    # one response this big is unusual for a web app
 HTTP_LARGE_TOTAL_BYTES    = 500 * 1024 * 1024   # total served to one IP
 
+# ── Host / privilege (auth.log) ──────────────────────────────────
+SUDO_FAIL_THRESHOLD    = 3      # failed sudo attempts by one user ...
+SUDO_WINDOW_SECONDS    = 120    # ... inside this window = sudo brute force / probing
+SU_FAIL_THRESHOLD      = 3      # failed `su` attempts by one user in the same window
+
 # ── DNS ──────────────────────────────────────────────────────────
 DNS_THRESHOLD          = 1      # any suspicious lookup is worth an alert
 DGA_MIN_LENGTH         = 12     # labels shorter than this are never called DGA

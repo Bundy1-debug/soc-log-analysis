@@ -42,6 +42,17 @@ SSH_ACCEPTED = re.compile(
     r"^Accepted (?P<method>\S+) for (?P<user>\S+) from (?P<ip>\S+) port \d+"
 )
 
+# sudo: "  bob : ... COMMAND=/bin/cat /etc/shadow"  and failures / not-in-sudoers
+SUDO_RUN     = re.compile(r"^\s*(?P<user>\S+)\s*:.*?COMMAND=(?P<command>.*)$")
+SUDO_FAIL    = re.compile(r"^\s*(?P<user>\S+)\s*:.*(?P<reason>incorrect password attempts|user NOT in sudoers|command not allowed)")
+# account changes from the `useradd` / `usermod` / `groupadd` tools
+USER_ADD     = re.compile(r"^new user: name=(?P<user>[^,]+).*?(?:GID=\d+)?.*$")
+USER_TO_GROUP= re.compile(r"^add '(?P<user>[^']+)' to group '(?P<group>[^']+)'")
+# su: "Successful su for root by bob" / "FAILED su for root by bob"
+SU_LINE      = re.compile(r"^(?P<result>Successful|FAILED) su for (?P<target>\S+) by (?P<user>\S+)")
+
+PRIV_GROUPS  = {"sudo", "root", "admin", "wheel", "adm"}
+
 DNS_QUERY       = re.compile(r"query: (?P<domain>\S+) IN (?P<qtype>\S+)")
 DNS_CLIENT      = re.compile(r"client (?:@\S+ )?(?P<ip>[0-9a-fA-F:.]+)#\d+")  # real BIND: "client @0x.. 1.2.3.4#53211"
 DNS_TRAILING_IP = re.compile(r"\((?P<ip>[0-9a-fA-F:.]+)\)\s*$")                # simplified lab format
@@ -118,6 +129,29 @@ def _parse_syslog(line, line_no):
             event = Event(ts, "ssh", "failed" if f else "accepted", ip, hit["user"],
                           {"method": hit["method"], "invalid_user": bool(f and f["invalid"])},
                           line_no)
+    elif proc == "sudo":
+        fail = SUDO_FAIL.match(msg)
+        run = SUDO_RUN.match(msg) if not fail else None
+        if fail:
+            event = Event(ts, "host", "sudo_fail", "", fail["user"],
+                          {"proc": "sudo", "reason": fail["reason"]}, line_no)
+        elif run:
+            event = Event(ts, "host", "sudo_run", "", run["user"],
+                          {"proc": "sudo", "command": run["command"].strip()}, line_no)
+    elif proc in ("useradd", "usermod", "groupadd"):
+        add = USER_ADD.match(msg)
+        grp = USER_TO_GROUP.match(msg)
+        if add:
+            event = Event(ts, "host", "user_add", "", add["user"].strip(),
+                          {"proc": proc}, line_no)
+        elif grp and grp["group"] in PRIV_GROUPS:
+            event = Event(ts, "host", "group_add", "", grp["user"],
+                          {"proc": proc, "group": grp["group"]}, line_no)
+    elif proc == "su":
+        su = SU_LINE.match(msg)
+        if su:
+            event = Event(ts, "host", "su_fail" if su["result"] == "FAILED" else "su_ok", "", su["user"],
+                          {"proc": "su", "target": su["target"]}, line_no)
     elif proc == "named":
         q = DNS_QUERY.search(msg)
         c = DNS_CLIENT.search(msg) or DNS_TRAILING_IP.search(msg)

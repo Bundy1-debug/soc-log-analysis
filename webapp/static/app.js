@@ -13,6 +13,7 @@ const SOURCE_OF = {
   SSH_BRUTE_FORCE: 'ssh', SSH_LOGIN_AFTER_BRUTE_FORCE: 'ssh', HTTP_SCAN: 'http',
   SUSPICIOUS_DNS: 'dns', DNS_TUNNELING: 'dns', DNS_BEACONING: 'dns',
   WEB_LOGIN_BRUTE_FORCE: 'http', WEB_DIRECTORY_BRUTE_FORCE: 'http', WEBSHELL: 'http', WEB_LARGE_TRANSFER: 'http',
+  SUDO_ABUSE: 'host', SU_BRUTE_FORCE: 'host', USER_CREATED: 'host', PRIV_GROUP_ADD: 'host',
 };
 const mb = n => `${(n / 1048576).toFixed(0)} MB`;
 const charts = {};
@@ -27,7 +28,7 @@ function el(tag, attrs = {}, ...children) {
     else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
     else node.setAttribute(k, v);
   }
-  for (const child of children.flat()) {
+  for (const child of children.flat(Infinity)) {    // detail cells nest arrays of tags
     if (child === null || child === undefined || child === false) continue;
     node.append(child instanceof Node ? child : document.createTextNode(String(child)));
   }
@@ -240,13 +241,21 @@ function detailsCell(a) {
     case 'DNS_BEACONING':
       return [tags([d.parent_domain], true),
               el('div', { class: 'muted' }, `every ~${d.interval_seconds}s · jitter ${(d.jitter * 100).toFixed(1)}%`)];
+    case 'SUDO_ABUSE':
+      return [tags(d.reasons, d.not_in_sudoers)];
+    case 'SU_BRUTE_FORCE':
+      return [el('span', { class: 'muted' }, `targeting ${d.targets.join(', ')}`)];
+    case 'USER_CREATED':
+      return [tags([`created by ${d.tool}`])];
+    case 'PRIV_GROUP_ADD':
+      return [tags(d.groups, true)];
     default:
       return [];
   }
 }
 
 function renderAlerts(alerts) {
-  for (const source of ['ssh', 'http', 'dns']) {
+  for (const source of ['ssh', 'http', 'dns', 'host']) {
     const rows = alerts.filter(a => SOURCE_OF[a.type] === source);
     $(`tc-${source}`).textContent = rows.length;
     const panel = $(`tab-${source}`);

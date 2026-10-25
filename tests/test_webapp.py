@@ -28,7 +28,7 @@ def test_dashboard_never_uses_innerhtml():
 
 def test_sample_route(client):
     data = client.post("/analyze-sample").get_json()
-    assert data["summary"]["breaches"] == 3          # SSH login + web login + webshell (all samples)
+    assert data["summary"]["breaches"] == 3          # SSH login + web login + webshell (host pack adds no breach)
 
 
 def test_upload_returns_payload_as_plain_data(client):

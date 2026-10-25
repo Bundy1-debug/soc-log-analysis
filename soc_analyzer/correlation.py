@@ -53,6 +53,21 @@ PLAYBOOK = {
         "Confirm what was served to {ip} and whether it should be public",
         "If data files leaked, start the data-breach process and rotate any credentials they contain",
     ],
+    "SUDO_ABUSE": [
+        "Review what '{ip}' was trying to run with sudo and whether the account should have sudo at all",
+        "Check /var/log/auth.log for a matching successful sudo right after the failures",
+    ],
+    "SU_BRUTE_FORCE": [
+        "Investigate account '{ip}': repeated su failures suggest a guessed-at root/other password",
+    ],
+    "USER_CREATED": [
+        "Confirm the new account '{ip}' maps to a change ticket; if not, disable it and investigate who created it",
+        "Check the account for a password, SSH keys and sudo rights",
+    ],
+    "PRIV_GROUP_ADD": [
+        "Confirm the privilege grant to '{ip}' was authorized; if not, remove it and treat the host as compromised",
+        "Review recent commands run by '{ip}' and look for other persistence",
+    ],
     "DNS_TUNNELING": [
         "Block {parent} at the DNS resolver to cut the channel",
         "Isolate host {ip} and find the process making the lookups (EDR, auditd, ss -p)",

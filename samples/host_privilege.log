@@ -1,0 +1,11 @@
+Mar 22 14:00:05 ubuntu sudo[1000]:    bob : 1 incorrect password attempts ; TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/bin/cat /etc/shadow
+Mar 22 14:00:10 ubuntu sudo[1000]:    bob : 1 incorrect password attempts ; TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/bin/cat /etc/shadow
+Mar 22 14:00:15 ubuntu sudo[1000]:    bob : 1 incorrect password attempts ; TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/bin/cat /etc/shadow
+Mar 22 14:00:20 ubuntu sudo[1000]:    bob : user NOT in sudoers ; TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/bin/su
+Mar 22 14:00:25 ubuntu su[1000]: FAILED su for root by eve
+Mar 22 14:00:30 ubuntu su[1000]: FAILED su for root by eve
+Mar 22 14:00:35 ubuntu su[1000]: FAILED su for root by eve
+Mar 22 14:00:40 ubuntu su[1000]: FAILED su for root by eve
+Mar 22 14:00:45 ubuntu useradd[1000]: new user: name=svc_backup, UID=1050, GID=1050, home=/home/svc_backup, shell=/bin/bash
+Mar 22 14:00:50 ubuntu usermod[1000]: add 'svc_backup' to group 'sudo'
+Mar 22 14:00:55 ubuntu sudo[1000]:    alice : TTY=pts/1 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/apt update
