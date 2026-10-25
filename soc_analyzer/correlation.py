@@ -77,6 +77,18 @@ PLAYBOOK = {
         "Find the process on {ip} that resolves {parent} on a timer (EDR process tree, auditd)",
         "Block {parent} at the resolver and hunt for the same domain on other hosts",
     ],
+    # EDR command-execution alerts share a response; a couple get an extra line
+    "_EDR": [
+        "Isolate the host and review the matched command(s) and their parent process in auditd",
+        "Identify the user/session behind '{ip}' and what else it ran before and after",
+    ],
+    "EDR_REVERSE_SHELL": [
+        "Treat the host as actively compromised: pull it off the network now",
+        "Find the remote IP/port the shell connected to and block it; preserve volatile evidence",
+    ],
+    "EDR_CLEAR_LOGS": [
+        "Logs may be incomplete: switch to other evidence (auditd, EDR, network, backups)",
+    ],
 }
 
 
@@ -87,6 +99,8 @@ def _actions(alert):
         keys.append("HTTP_SCAN_EXPOSURE")
     if alert["type"] == "WEB_LOGIN_BRUTE_FORCE" and d.get("successful_logins"):
         keys.append("WEB_LOGIN_SUCCESS")
+    if alert["type"].startswith("EDR_"):               # generic EDR steps, plus any type-specific ones
+        keys = ["_EDR"] + [k for k in [alert["type"]] if k in PLAYBOOK]
     return [step.format(ip=alert["ip"],
                         parent=d.get("parent_domain", ""),
                         scripts=", ".join(d.get("scripts", [])),
@@ -100,7 +114,9 @@ def is_breach(alert):
     d = alert["details"]
     return (alert["type"] == "SSH_LOGIN_AFTER_BRUTE_FORCE"
             or (alert["type"] == "WEB_LOGIN_BRUTE_FORCE" and d.get("successful_logins", 0) > 0)
-            or (alert["type"] == "WEBSHELL" and d.get("command_requests", 0) > 0))
+            or (alert["type"] == "WEBSHELL" and d.get("command_requests", 0) > 0)
+            # a matched reverse shell or log-wipe is executed attacker code, not just an attempt
+            or alert["type"] in ("EDR_REVERSE_SHELL", "EDR_CLEAR_LOGS", "EDR_CREDENTIAL_ACCESS_FILES"))
 
 
 def build_incidents(alerts):

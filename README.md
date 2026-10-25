@@ -34,6 +34,11 @@ Simulate real attacks in an isolated lab and build the tool a Tier-1 SOC analyst
 | Su brute force | `auth.log` | ≥ 3 failed `su` attempts by one user | T1548.003 |
 | **New account created** | `auth.log` | `useradd` added a local account | T1136.001 Local Account |
 | **Privileged group grant** | `auth.log` | A user added to `sudo`/`root`/`wheel`/`admin` | T1098 Account Manipulation |
+| **Reverse shell** (EDR) | `auditd` exec | `/dev/tcp`, `nc -e`, `bash -i`, python pty spawn | T1059.004 Unix Shell |
+| **Download-and-run** (EDR) | `auditd` exec | `curl\|bash`, running from `/tmp`, `chmod +x /tmp/…` | T1105 Ingress Tool Transfer |
+| **Credential access** (EDR) | `auditd` exec | Reading `/etc/shadow`, SSH/cloud private keys | T1003.008 / T1552.004 |
+| **Persistence** (EDR) | `auditd` exec | crontab, `authorized_keys`, systemd/init changes | T1053.003 / T1098.004 / T1543.002 |
+| **Defense evasion** (EDR) | `auditd` exec | Clearing `/var/log`, `history -c`, unsetting HISTFILE | T1070.002 / T1070.003 |
 
 **Correlation:** all alerts from one IP become one incident. An incident spanning several ATT&CK tactics is escalated one level; a breach is always CRITICAL. Each incident gets a merged timeline and recommended response steps.
 
@@ -56,6 +61,7 @@ soc_analyzer/
 ├── detections_web.py  login/dir brute force, webshell, large transfer
 ├── detections_dns.py  DNS tunneling / exfiltration, C2 beaconing
 ├── detections_host.py sudo/su abuse, new accounts, privilege grants
+├── detections_edr.py  auditd command rules: reverse shell, persistence, log wiping
 ├── intel.py         IOC blocklists from intel/
 ├── mitre.py         ATT&CK technique / tactic table
 ├── correlation.py   alerts → incidents (timeline + response playbook)
@@ -162,7 +168,8 @@ All thresholds live in `soc_analyzer/config.py`. Main levers:
 ## ⚠️ Known limitations
 
 - Batch analysis of files (no real-time `tail -f` mode yet)
-- Correlation is by IP only; in DNS logs the IP is the *querying internal host*, not an attacker
+- Correlation is by IP (network logs) or by user (host logs), not across the two yet
+- auditd detection reads the **command line** (EXECVE); it does not yet correlate PATH/open syscalls, so file reads done without a shell command are not seen
 - Timezones are dropped: syslog has none, so all times are compared as wall-clock
 - Low-and-slow attacks below the window threshold are not detected
 

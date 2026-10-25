@@ -11,6 +11,7 @@ from .correlation import build_incidents
 from .detections import (SEVERITIES, apply_ip_intel, detect_dns, detect_http,
                          detect_ssh_breach, detect_ssh_brute_force)
 from .detections_dns import detect_dns_beaconing, detect_dns_tunneling, split_domain
+from .detections_edr import detect_edr
 from .detections_host import run_host
 from .detections_web import (detect_directory_brute_force, detect_large_transfer,
                              detect_web_login_brute_force, detect_webshell)
@@ -45,7 +46,7 @@ def run_all(events, intel=None):
               + detect_dns_tunneling(events) + detect_dns_beaconing(events)
               + detect_web_login_brute_force(events) + detect_directory_brute_force(events)
               + detect_webshell(events) + detect_large_transfer(events)
-              + run_host(events))
+              + run_host(events) + detect_edr(events))
     return apply_ip_intel(suppress_overlaps(alerts), intel)
 
 

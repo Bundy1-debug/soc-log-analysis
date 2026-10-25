@@ -15,6 +15,7 @@ const SOURCE_OF = {
   WEB_LOGIN_BRUTE_FORCE: 'http', WEB_DIRECTORY_BRUTE_FORCE: 'http', WEBSHELL: 'http', WEB_LARGE_TRANSFER: 'http',
   SUDO_ABUSE: 'host', SU_BRUTE_FORCE: 'host', USER_CREATED: 'host', PRIV_GROUP_ADD: 'host',
 };
+const sourceOf = type => SOURCE_OF[type] || (type.startsWith('EDR_') ? 'host' : null);   // 9 EDR rule types → Host tab
 const mb = n => `${(n / 1048576).toFixed(0)} MB`;
 const charts = {};
 let lastReport = null;
@@ -250,13 +251,17 @@ function detailsCell(a) {
     case 'PRIV_GROUP_ADD':
       return [tags(d.groups, true)];
     default:
+      if (a.type.startsWith('EDR_')) {                 // command-execution alerts from auditd
+        return [el('div', { class: 'summary-cell', style: 'font-family:var(--mono);font-size:.7rem' },
+                   (d.commands || []).join(' ; '))];
+      }
       return [];
   }
 }
 
 function renderAlerts(alerts) {
   for (const source of ['ssh', 'http', 'dns', 'host']) {
-    const rows = alerts.filter(a => SOURCE_OF[a.type] === source);
+    const rows = alerts.filter(a => sourceOf(a.type) === source);
     $(`tc-${source}`).textContent = rows.length;
     const panel = $(`tab-${source}`);
     panel.replaceChildren();

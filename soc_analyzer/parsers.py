@@ -11,7 +11,7 @@ import ipaddress
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import unquote_plus
 
 
@@ -52,6 +52,10 @@ USER_TO_GROUP= re.compile(r"^add '(?P<user>[^']+)' to group '(?P<group>[^']+)'")
 SU_LINE      = re.compile(r"^(?P<result>Successful|FAILED) su for (?P<target>\S+) by (?P<user>\S+)")
 
 PRIV_GROUPS  = {"sudo", "root", "admin", "wheel", "adm"}
+
+# auditd (/var/log/audit/audit.log): one event spans several "type=" lines sharing audit(TS:ID)
+AUDIT_LINE   = re.compile(r"^type=(?P<rtype>\w+)\s+msg=audit\((?P<ts>\d+)\.\d+:(?P<id>\d+)\):\s*(?P<body>.*)$")
+AUDIT_FIELD  = re.compile(r'(\w+)=("[^"]*"|\S+)')
 
 DNS_QUERY       = re.compile(r"query: (?P<domain>\S+) IN (?P<qtype>\S+)")
 DNS_CLIENT      = re.compile(r"client (?:@\S+ )?(?P<ip>[0-9a-fA-F:.]+)#\d+")  # real BIND: "client @0x.. 1.2.3.4#53211"
@@ -193,14 +197,74 @@ def _resolve_years(events, year):
             e.ts = e.ts.replace(year=y, day=28)
 
 
+# ── auditd ───────────────────────────────────────────────────────
+
+def _audit_unescape(value):
+    """An EXECVE arg is a quoted string, or hex when it holds spaces/special chars."""
+    if value.startswith('"'):
+        return value[1:-1]
+    if re.fullmatch(r"(?:[0-9A-Fa-f]{2})+", value):
+        try:
+            return bytes.fromhex(value).decode("utf-8", "replace")
+        except ValueError:
+            pass
+    return value
+
+
+def _build_audit_events(records):
+    """records: {event_id: {"ts", "line", "fields": {rtype: {k: v}}, "argv": [...]}} → exec Events."""
+    events = []
+    for rec in records.values():
+        syscall = rec["fields"].get("SYSCALL", {})
+        argv = rec.get("argv")
+        if not argv and "PROCTITLE" not in rec["fields"]:
+            continue
+        if not argv:                                   # fall back to the hex-encoded proctitle
+            raw = rec["fields"]["PROCTITLE"].get("proctitle", "")
+            argv = _audit_unescape(raw).replace("\x00", " ").split() if raw else []
+        command = " ".join(argv).strip()
+        if not command:
+            continue
+        auid = syscall.get("auid", "")
+        uid = syscall.get("uid", "")
+        user = "root" if auid == "0" or uid == "0" else (f"auid={auid}" if auid not in ("", "4294967295") else f"uid={uid}")
+        ts = datetime.fromtimestamp(int(rec["ts"]), timezone.utc).replace(tzinfo=None)  # UTC, naive like syslog
+        events.append(Event(ts, "host", "exec", "", user, {
+            "proc": "auditd",
+            "command": command,
+            "exe": syscall.get("exe", "").strip('"'),
+            "success": syscall.get("success", "yes"),
+            "key": syscall.get("key", "").strip('"'),
+            "uid": uid,
+            "auid": auid,
+        }, rec["line"]))
+    return events
+
+
+def _collect_audit(line, no, records):
+    m = AUDIT_LINE.match(line)
+    if not m:
+        return False
+    rec = records.setdefault(m["id"], {"ts": m["ts"], "line": no, "fields": {}, "argv": None})
+    fields = {k: v for k, v in AUDIT_FIELD.findall(m["body"])}
+    rec["fields"][m["rtype"]] = fields
+    if m["rtype"] == "EXECVE":
+        n = int(fields.get("argc", "0"))
+        rec["argv"] = [_audit_unescape(fields[f"a{i}"]) for i in range(n) if f"a{i}" in fields]
+    return True
+
+
 # ── Public API ───────────────────────────────────────────────────
 
 def parse_lines(lines, year=None):
     """Parse an iterable of log lines (any mix of formats) into Events sorted by time."""
     tagged = []
+    audit_records = {}
     for no, line in enumerate(lines, 1):
         line = line.rstrip("\r\n")
         if not line:
+            continue
+        if _collect_audit(line, no, audit_records):
             continue
         http = _parse_http(line, no)
         if http:
@@ -209,5 +273,6 @@ def parse_lines(lines, year=None):
         events, year_known = _parse_syslog(line, no)
         tagged.extend((e, year_known) for e in events)
 
+    tagged.extend((e, True) for e in _build_audit_events(audit_records))   # auditd carries epoch time
     _resolve_years(tagged, year)
     return sorted((e for e, _ in tagged), key=lambda e: e.ts)

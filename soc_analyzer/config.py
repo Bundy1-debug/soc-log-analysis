@@ -30,6 +30,9 @@ SUDO_FAIL_THRESHOLD    = 3      # failed sudo attempts by one user ...
 SUDO_WINDOW_SECONDS    = 120    # ... inside this window = sudo brute force / probing
 SU_FAIL_THRESHOLD      = 3      # failed `su` attempts by one user in the same window
 
+# ── EDR-style host commands (auditd) ─────────────────────────────
+# One matching command is enough to alert; see soc_analyzer/detections_edr.py for the rules.
+
 # ── DNS ──────────────────────────────────────────────────────────
 DNS_THRESHOLD          = 1      # any suspicious lookup is worth an alert
 DGA_MIN_LENGTH         = 12     # labels shorter than this are never called DGA

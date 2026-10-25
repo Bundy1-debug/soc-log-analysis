@@ -53,6 +53,9 @@ def describe(e):
     if e.source == "dns":
         return f"query {d['domain']} ({d['qtype']})"
     # host events
+    if e.action == "exec":
+        cmd = d["command"] if len(d["command"]) <= 160 else d["command"][:157] + "..."
+        return f"exec ({e.user}): {cmd}"
     if e.action in ("sudo_run", "sudo_fail"):
         return f"sudo by {e.user}: {d.get('command') or d.get('reason')}"
     if e.action in ("su_ok", "su_fail"):

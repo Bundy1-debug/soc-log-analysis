@@ -1,0 +1,22 @@
+type=EXECVE msg=audit(1711100003.000:1001): argc=2 a0="bash" a1="-i"
+type=SYSCALL msg=audit(1711100003.000:1001): arch=c000003e syscall=59 success=yes exit=0 comm="bash" exe="/bin/bash" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100006.000:1002): argc=2 a0="cat" a1="/etc/shadow"
+type=SYSCALL msg=audit(1711100006.000:1002): arch=c000003e syscall=59 success=yes exit=0 comm="cat" exe="/usr/bin/cat" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100009.000:1003): argc=3 a0="cp" a1="/home/dev/.ssh/id_rsa" a2="/tmp/k"
+type=SYSCALL msg=audit(1711100009.000:1003): arch=c000003e syscall=59 success=yes exit=0 comm="cp" exe="/usr/bin/cp" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100012.000:1004): argc=2 a0="crontab" a1="-l"
+type=SYSCALL msg=audit(1711100012.000:1004): arch=c000003e syscall=59 success=yes exit=0 comm="crontab" exe="/usr/bin/crontab" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100015.000:1005): argc=3 a0="tee" a1="-a" a2="/root/.ssh/authorized_keys"
+type=SYSCALL msg=audit(1711100015.000:1005): arch=c000003e syscall=59 success=yes exit=0 comm="tee" exe="/usr/bin/tee" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100018.000:1006): argc=3 a0="systemctl" a1="enable" a2="evil.service"
+type=SYSCALL msg=audit(1711100018.000:1006): arch=c000003e syscall=59 success=yes exit=0 comm="systemctl" exe="/usr/bin/systemctl" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100021.000:1007): argc=4 a0="truncate" a1="-s" a2="0" a3="/var/log/auth.log"
+type=SYSCALL msg=audit(1711100021.000:1007): arch=c000003e syscall=59 success=yes exit=0 comm="truncate" exe="/usr/bin/truncate" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100024.000:1008): argc=2 a0="history" a1="-c"
+type=SYSCALL msg=audit(1711100024.000:1008): arch=c000003e syscall=59 success=yes exit=0 comm="history" exe="/usr/bin/history" key="detect" auid=1001 uid=1001
+type=EXECVE msg=audit(1711100027.000:1009): argc=3 a0="ls" a1="-la" a2="/var/www"
+type=SYSCALL msg=audit(1711100027.000:1009): arch=c000003e syscall=59 success=yes exit=0 comm="ls" exe="/usr/bin/ls" key="watch" auid=1000 uid=1000
+type=EXECVE msg=audit(1711100030.000:1010): argc=2 a0="apt" a1="update"
+type=SYSCALL msg=audit(1711100030.000:1010): arch=c000003e syscall=59 success=yes exit=0 comm="apt" exe="/usr/bin/apt" key="watch" auid=1000 uid=1000
+type=EXECVE msg=audit(1711100033.000:1011): argc=3 a0="systemctl" a1="status" a2="nginx"
+type=SYSCALL msg=audit(1711100033.000:1011): arch=c000003e syscall=59 success=yes exit=0 comm="systemctl" exe="/usr/bin/systemctl" key="watch" auid=1000 uid=1000
