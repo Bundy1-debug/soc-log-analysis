@@ -1,769 +1,378 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOC Log Analyzer</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root {
-      --bg:       #070b0f;
-      --surface:  #0d1117;
-      --border:   #1a2535;
-      --accent:   #00ffe0;
-      --accent2:  #ff4d6d;
-      --text:     #c9d1d9;
-      --muted:    #4a5568;
-      --critical: #ff4d6d;
-      --high:     #ff8c42;
-      --medium:   #ffd166;
-      --low:      #06d6a0;
-      --font-mono: 'Share Tech Mono', monospace;
-      --font-ui:   'Rajdhani', sans-serif;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SOC Log Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<script defer src="{{ url_for('static', filename='app.js') }}"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#08090d;
+  --panel:#0f1117;
+  --panel2:#13161f;
+  --border:#1e2433;
+  --border2:#252d3d;
+  --accent:#3b82f6;
+  --accent-glow:rgba(59,130,246,.25);
+  --green:#10b981;
+  --red:#ef4444;
+  --orange:#f59e0b;
+  --yellow:#eab308;
+  --purple:#8b5cf6;
+  --cyan:#06b6d4;
+  --text:#e2e8f0;
+  --text2:#94a3b8;
+  --text3:#475569;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --r:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;overflow-x:hidden;}
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:50;}
+.sidebar-logo{padding:1.5rem 1.2rem 1rem;border-bottom:1px solid var(--border);}
+.logo-mark{display:flex;align-items:center;gap:.6rem;}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.logo-text{font-weight:700;font-size:.95rem;letter-spacing:.5px;}
+.logo-sub{font-size:.65rem;color:var(--text3);font-family:var(--mono);margin-top:.15rem;}
+.sidebar-nav{padding:.8rem 0;flex:1;}
+.nav-section{padding:.4rem 1rem .2rem;font-size:.6rem;font-weight:600;color:var(--text3);letter-spacing:2px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:.7rem;padding:.55rem 1.2rem;color:var(--text2);cursor:pointer;transition:all .15s;font-size:.82rem;font-weight:500;border-left:2px solid transparent;margin:.05rem 0;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--accent);background:rgba(59,130,246,.08);border-left-color:var(--accent);}
+.nav-item .ni{font-size:.9rem;width:16px;text-align:center;}
+.nav-badge{margin-left:auto;background:rgba(59,130,246,.15);color:var(--accent);font-size:.6rem;padding:.1rem .4rem;border-radius:10px;font-family:var(--mono);}
+.nav-badge.red{background:rgba(239,68,68,.15);color:var(--red);}
+.nav-badge.green{background:rgba(16,185,129,.15);color:var(--green);}
+.sidebar-footer{padding:1rem 1.2rem;border-top:1px solid var(--border);}
+.status-row{display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--text3);}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-ui);
-      font-size: 16px;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:220px;right:0;height:56px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.5rem;gap:1rem;z-index:40;}
+.topbar-title{font-weight:600;font-size:.9rem;}
+.topbar-sub{font-size:.72rem;color:var(--text3);font-family:var(--mono);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:.8rem;}
+.clock-badge{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:.3rem .8rem;font-family:var(--mono);font-size:.72rem;color:var(--text2);}
+.threat-level{display:flex;align-items:center;gap:.4rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:.3rem .8rem;font-size:.72rem;color:var(--red);font-weight:600;}
 
-    /* Scanline overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,255,224,0.015) 2px,
-        rgba(0,255,224,0.015) 4px
-      );
-      pointer-events: none;
-      z-index: 9999;
-    }
+/* ── MAIN ── */
+.main{margin-left:220px;margin-top:56px;padding:1.5rem;min-height:calc(100vh - 56px);}
 
-    /* ── HEADER ── */
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 1.2rem 2rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      background: var(--surface);
-    }
+/* ── UPLOAD PANEL ── */
+.upload-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem;}
+.panel-header{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;}
+.panel-title{font-weight:600;font-size:.85rem;}
+.panel-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+.drop-zone{border:1px dashed var(--border2);border-radius:var(--r);padding:1.8rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--panel2);}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(59,130,246,.04);}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.drop-icon{font-size:1.6rem;margin-bottom:.5rem;}
+.drop-title{font-weight:500;font-size:.85rem;margin-bottom:.25rem;}
+.drop-sub{font-size:.72rem;color:var(--text3);font-family:var(--mono);}
+.btn-row{display:flex;gap:.6rem;margin-top:1rem;}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1.1rem;border-radius:var(--r);font-size:.78rem;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:var(--sans);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#2563eb;}
+.btn-ghost{background:var(--panel2);color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
 
-    .logo {
-      font-family: var(--font-mono);
-      font-size: 1.1rem;
-      color: var(--accent);
-      letter-spacing: 2px;
-    }
+/* ── LOADING ── */
+#loading{display:none;background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:2rem;text-align:center;margin-bottom:1.5rem;}
+.spin{display:inline-block;width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.6rem;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:.8rem;color:var(--text2);font-family:var(--mono);}
 
-    .logo span { color: var(--accent2); }
+/* ── ERROR ── */
+#error-box{display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:.8rem 1rem;font-size:.78rem;color:var(--red);margin-bottom:1rem;font-family:var(--mono);}
 
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse 2s infinite;
-      margin-left: auto;
-    }
+/* ── RESULTS ── */
+#results{display:none;}
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.2rem;position:relative;overflow:hidden;}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi.blue::after{background:var(--accent);}
+.kpi.red::after{background:var(--red);}
+.kpi.green::after{background:var(--green);}
+.kpi.orange::after{background:var(--orange);}
+.kpi.purple::after{background:var(--purple);}
+.kpi.cyan::after{background:var(--cyan);}
+.kpi.yellow::after{background:var(--yellow);}
+.kpi-label{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.5rem;}
+.kpi-value{font-size:2rem;font-weight:700;line-height:1;font-family:var(--mono);}
+.kpi.blue .kpi-value{color:var(--accent);}
+.kpi.red .kpi-value{color:var(--red);}
+.kpi.green .kpi-value{color:var(--green);}
+.kpi.orange .kpi-value{color:var(--orange);}
+.kpi.purple .kpi-value{color:var(--purple);}
+.kpi.cyan .kpi-value{color:var(--cyan);}
+.kpi.yellow .kpi-value{color:var(--yellow);}
+.kpi-sub{font-size:.65rem;color:var(--text3);margin-top:.3rem;}
 
-    .header-time {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
+/* ── CHARTS ── */
+.charts-row{display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+@media(max-width:1000px){.charts-row{grid-template-columns:1fr;}}
+.chart-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem;}
+.cp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.cp-title{font-size:.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.cp-badge{font-size:.6rem;background:var(--panel2);border:1px solid var(--border2);border-radius:4px;padding:.15rem .5rem;color:var(--text3);font-family:var(--mono);}
+.chart-wrap{position:relative;height:180px;}
 
-    /* ── MAIN LAYOUT ── */
-    main {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
+/* ── ALERT TABS ── */
+.alert-section{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);margin-bottom:1.5rem;overflow:hidden;}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--panel2);}
+.tab-btn{display:flex;align-items:center;gap:.5rem;padding:.7rem 1.2rem;font-size:.75rem;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:var(--sans);}
+.tab-btn:hover{color:var(--text2);}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--accent);}
+.tab-count{font-size:.6rem;padding:.1rem .4rem;border-radius:4px;font-family:var(--mono);}
+.tc-ssh{background:rgba(139,92,246,.15);color:var(--purple);}
+.tc-http{background:rgba(245,158,11,.15);color:var(--orange);}
+.tc-dns{background:rgba(6,182,212,.15);color:var(--cyan);}
+.tab-panel{display:none;padding:0;}
+.tab-panel.active{display:block;}
 
-    /* ── UPLOAD ZONE ── */
-    .upload-section {
-      margin-bottom: 2.5rem;
-    }
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--panel2);}
+th{font-size:.62rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:.65rem 1rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:.7rem 1rem;font-size:.78rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+.ip-btn{font-family:var(--mono);color:var(--accent);font-weight:500;cursor:pointer;background:none;border:none;font-size:.78rem;display:flex;align-items:center;gap:.3rem;padding:0;}
+.ip-btn:hover{color:#93c5fd;}
+.ip-btn::after{content:'⊕';font-size:.65rem;opacity:.6;}
+.sev{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:4px;font-size:.65rem;font-weight:600;letter-spacing:.5px;}
+.sev-CRITICAL{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.sev-HIGH{background:rgba(245,158,11,.12);color:var(--orange);border:1px solid rgba(245,158,11,.25);}
+.sev-MEDIUM{background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.25);}
+.sev-LOW{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25);}
+.breach-tag{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:4px;font-size:.65rem;font-weight:600;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.blocked-tag{font-size:.72rem;color:var(--text3);}
+.tag{display:inline-block;background:var(--panel2);border:1px solid var(--border2);border-radius:4px;padding:.1rem .4rem;font-size:.65rem;color:var(--text2);font-family:var(--mono);margin:.1rem;}
+.tag.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:#fca5a5;}
+.geo-tag{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;color:var(--text2);cursor:pointer;}
+.geo-tag:hover{color:var(--accent);}
+.geo-flag{font-size:.9rem;}
+.empty-state{text-align:center;padding:2.5rem;color:var(--text3);font-size:.8rem;}
+.empty-icon{font-size:1.5rem;margin-bottom:.5rem;opacity:.4;}
 
-    .section-label {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--accent);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 1rem;
-    }
+/* ── GEO MODAL ── */
+#geo-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;}
+#geo-modal.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:10px;width:380px;max-width:95vw;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.5);}
+.modal-head{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--panel2);}
+.modal-head-title{font-size:.8rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;padding:.2rem;border-radius:4px;transition:color .15s;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:1.2rem;}
+.modal-ip{font-family:var(--mono);font-size:1.1rem;font-weight:600;color:var(--accent);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.geo-grid{display:grid;gap:.5rem;}
+.geo-row{display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;background:var(--panel2);border-radius:4px;}
+.geo-key{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.geo-val{font-size:.78rem;color:var(--text);font-family:var(--mono);}
+.geo-private{text-align:center;padding:1rem;color:var(--text3);font-size:.8rem;}
+.geo-private .geo-icon{font-size:1.5rem;margin-bottom:.4rem;}
+#geo-loading{text-align:center;padding:1.5rem;color:var(--text3);font-size:.78rem;font-family:var(--mono);}
 
-    .upload-zone {
-      border: 1px dashed var(--border);
-      border-radius: 4px;
-      padding: 2.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: var(--surface);
-      position: relative;
-    }
+/* ── JSON PANEL ── */
+.json-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.json-head{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1.2rem;border-bottom:1px solid var(--border);background:var(--panel2);}
+.json-title{font-size:.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.btn-xs{padding:.3rem .7rem;border-radius:4px;font-size:.68rem;font-weight:500;cursor:pointer;background:var(--panel);border:1px solid var(--border2);color:var(--text2);transition:all .15s;font-family:var(--sans);}
+.btn-xs:hover{border-color:var(--accent);color:var(--accent);}
+pre#json-out{padding:1.2rem;font-family:var(--mono);font-size:.72rem;line-height:1.8;overflow:auto;max-height:320px;color:#64748b;background:var(--bg);}
+.jk{color:#7dd3fc;} .js{color:#86efac;} .jn{color:#fbbf24;} .jb{color:#c084fc;}
 
-    .upload-zone:hover, .upload-zone.dragover {
-      border-color: var(--accent);
-      box-shadow: 0 0 20px rgba(0,255,224,0.08);
-    }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--panel);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
-    .upload-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
+/* ── NAV LINKS / SECTIONS ── */
+a.nav-item{text-decoration:none;}
+label.drop-zone{display:block;}
+.hidden{display:none !important;}
+.section-head{display:flex;align-items:center;gap:.6rem;margin:0 0 .8rem;}
+.section-head h2{font-size:.8rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.section-head .cp-badge{margin-left:auto;}
+#incidents,#alerts,#raw,#overview{scroll-margin-top:72px;}
 
-    .upload-icon {
-      font-size: 2rem;
-      margin-bottom: 0.75rem;
-      color: var(--muted);
-    }
-
-    .upload-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 0.4rem;
-    }
-
-    .upload-sub {
-      font-size: 0.85rem;
-      color: var(--muted);
-      font-family: var(--font-mono);
-    }
-
-    .btn-row {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.2rem;
-    }
-
-    .btn {
-      padding: 0.65rem 1.5rem;
-      border: 1px solid var(--accent);
-      background: transparent;
-      color: var(--accent);
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      letter-spacing: 1px;
-      cursor: pointer;
-      border-radius: 2px;
-      transition: all 0.2s;
-    }
-
-    .btn:hover {
-      background: var(--accent);
-      color: var(--bg);
-    }
-
-    .btn-sample {
-      border-color: var(--muted);
-      color: var(--muted);
-    }
-
-    .btn-sample:hover {
-      background: var(--muted);
-      color: var(--bg);
-    }
-
-    /* ── LOADING ── */
-    #loading {
-      display: none;
-      text-align: center;
-      padding: 2rem;
-      font-family: var(--font-mono);
-      color: var(--accent);
-      font-size: 0.85rem;
-      letter-spacing: 2px;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 20px; height: 20px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-right: 1rem;
-      vertical-align: middle;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── RESULTS ── */
-    #results { display: none; }
-
-    .results-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .results-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    .results-time {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    /* ── STAT CARDS ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.25rem;
-      position: relative;
-      overflow: hidden;
-      animation: fadeUp 0.4s ease both;
-    }
-
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--accent);
-    }
-
-    .stat-card.danger::before { background: var(--critical); }
-    .stat-card.warn::before   { background: var(--medium); }
-    .stat-card.ok::before     { background: var(--low); }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .stat-label {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
-    }
-
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-    }
-
-    .stat-card.danger .stat-value { color: var(--critical); }
-    .stat-card.warn   .stat-value { color: var(--medium); }
-    .stat-card.ok     .stat-value { color: var(--low); }
-
-    /* ── CHARTS ROW ── */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    @media (max-width: 768px) {
-      .charts-grid { grid-template-columns: 1fr; }
-    }
-
-    .chart-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.5rem;
-    }
-
-    .chart-title {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--accent);
-      letter-spacing: 2px;
-      margin-bottom: 1.2rem;
-    }
-
-    .chart-wrap {
-      position: relative;
-      height: 220px;
-    }
-
-    /* ── ALERTS TABLE ── */
-    .table-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      overflow-x: auto;
-    }
-
-    .table-title {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--accent);
-      letter-spacing: 2px;
-      margin-bottom: 1.2rem;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-    }
-
-    thead th {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      letter-spacing: 2px;
-      color: var(--muted);
-      text-align: left;
-      padding: 0.6rem 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
-    }
-
-    tbody tr:hover { background: rgba(0,255,224,0.03); }
-
-    tbody td {
-      padding: 0.85rem 1rem;
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-    }
-
-    .ip-cell { color: var(--accent); font-weight: bold; }
-
-    .sev-badge {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 2px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    .sev-CRITICAL { background: rgba(255,77,109,0.15); color: var(--critical); border: 1px solid var(--critical); }
-    .sev-HIGH     { background: rgba(255,140,66,0.15);  color: var(--high);     border: 1px solid var(--high); }
-    .sev-MEDIUM   { background: rgba(255,209,102,0.15); color: var(--medium);   border: 1px solid var(--medium); }
-    .sev-LOW      { background: rgba(6,214,160,0.15);   color: var(--low);      border: 1px solid var(--low); }
-
-    .breach-badge {
-      display: inline-block;
-      padding: 0.2rem 0.5rem;
-      background: rgba(255,77,109,0.15);
-      color: var(--critical);
-      border: 1px solid var(--critical);
-      border-radius: 2px;
-      font-size: 0.7rem;
-      letter-spacing: 1px;
-    }
-
-    /* ── JSON VIEWER ── */
-    .json-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.5rem;
-    }
-
-    .json-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-
-    .json-title {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--accent);
-      letter-spacing: 2px;
-    }
-
-    .btn-copy {
-      padding: 0.35rem 0.9rem;
-      border: 1px solid var(--muted);
-      background: transparent;
-      color: var(--muted);
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      cursor: pointer;
-      border-radius: 2px;
-      transition: all 0.2s;
-    }
-
-    .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
-
-    pre#json-output {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      padding: 1.2rem;
-      font-family: var(--font-mono);
-      font-size: 0.78rem;
-      line-height: 1.7;
-      overflow-x: auto;
-      max-height: 400px;
-      overflow-y: auto;
-      color: #8b949e;
-    }
-
-    pre#json-output .key   { color: #79c0ff; }
-    pre#json-output .str   { color: #a5d6ff; }
-    pre#json-output .num   { color: var(--low); }
-    pre#json-output .bool  { color: var(--medium); }
-
-    /* ── ERROR ── */
-    #error-box {
-      display: none;
-      background: rgba(255,77,109,0.1);
-      border: 1px solid var(--critical);
-      border-radius: 4px;
-      padding: 1rem 1.5rem;
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      color: var(--critical);
-      margin-bottom: 1.5rem;
-    }
-  </style>
+/* ── INCIDENTS ── */
+.inc-list{display:grid;gap:.8rem;margin-bottom:1.5rem;}
+.inc{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--border2);border-radius:var(--r);overflow:hidden;}
+.inc.CRITICAL{border-left-color:var(--red);}
+.inc.HIGH{border-left-color:var(--orange);}
+.inc.MEDIUM{border-left-color:var(--yellow);}
+.inc.LOW{border-left-color:var(--green);}
+.inc-head{display:flex;align-items:center;gap:.8rem;padding:.9rem 1.2rem .5rem;cursor:pointer;flex-wrap:wrap;width:100%;background:none;border:none;color:inherit;font:inherit;text-align:left;}
+.inc-id{font-family:var(--mono);font-size:.7rem;color:var(--text3);}
+.inc-ip{font-family:var(--mono);font-weight:600;color:var(--text);}
+.inc-when{margin-left:auto;font-family:var(--mono);font-size:.68rem;color:var(--text3);}
+.inc-toggle{font-size:.7rem;color:var(--text3);transition:transform .15s;}
+.inc.open .inc-toggle{transform:rotate(90deg);}
+.inc-chain{padding:0 1.2rem .9rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;}
+.stage{font-size:.68rem;padding:.2rem .55rem;border-radius:4px;background:var(--panel2);border:1px solid var(--border2);color:var(--text2);}
+.stage b{color:var(--text);font-weight:600;}
+.stage-arrow{color:var(--text3);font-size:.7rem;}
+.inc-body{display:none;border-top:1px solid var(--border);padding:1rem 1.2rem;grid-template-columns:1.5fr 1fr;gap:1.4rem;}
+.inc.open .inc-body{display:grid;}
+@media(max-width:900px){.inc-body{grid-template-columns:1fr;}}
+.sub-title{font-size:.62rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:0 0 .6rem;}
+.timeline{list-style:none;border-left:1px solid var(--border2);margin-left:.3rem;max-height:340px;overflow:auto;}
+.timeline li{position:relative;padding:.2rem 0 .5rem 1rem;font-size:.72rem;}
+.timeline li::before{content:'';position:absolute;left:-4px;top:.5rem;width:7px;height:7px;border-radius:50%;background:var(--border2);}
+.timeline li.ssh::before{background:var(--purple);}
+.timeline li.http::before{background:var(--orange);}
+.timeline li.dns::before{background:var(--cyan);}
+.tl-ts{font-family:var(--mono);color:var(--text3);font-size:.65rem;margin-right:.4rem;}
+.tl-alert{color:var(--text3);font-size:.65rem;}
+.tl-text{display:block;color:var(--text);font-family:var(--mono);word-break:break-all;}
+.response{padding-left:1.1rem;font-size:.75rem;color:var(--text2);line-height:1.7;margin-bottom:1rem;}
+.mitre-link{font-family:var(--mono);font-size:.65rem;color:var(--accent);text-decoration:none;white-space:nowrap;}
+.mitre-link:hover{text-decoration:underline;}
+.muted{color:var(--text3);font-size:.7rem;}
+.summary-cell{color:var(--text2);font-size:.72rem;max-width:380px;}
+</style>
 </head>
 <body>
 
-<header>
-  <div class="logo">SOC<span>//</span>ANALYZER</div>
-  <div class="status-dot"></div>
-  <div class="header-time" id="clock"></div>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">🛡</div>
+      <div>
+        <div class="logo-text">SOC Analyzer</div>
+        <div class="logo-sub">v3 · detection engine</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Workflow</div>
+    <a class="nav-item active" href="#upload"><span class="ni">⇪</span>Upload logs</a>
+    <a class="nav-item" href="#overview"><span class="ni">▦</span>Overview</a>
+    <a class="nav-item" href="#incidents"><span class="ni">⚑</span>Incidents<span class="nav-badge red" id="nav-incidents">0</span></a>
+    <a class="nav-item" href="#alerts"><span class="ni">≡</span>Alerts<span class="nav-badge" id="nav-alerts">0</span></a>
+    <a class="nav-item" href="#raw"><span class="ni">{}</span>Raw JSON</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="status-row"><span class="status-dot"></span><span id="status-text">Ready</span></div>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div>
+    <div class="topbar-title">Threat Detection Dashboard</div>
+    <div class="topbar-sub">SSH · HTTP · DNS · MITRE ATT&amp;CK</div>
+  </div>
+  <div class="topbar-right">
+    <div class="threat-level hidden" id="threat-level"></div>
+    <div class="clock-badge" id="clock">--:--:--</div>
+  </div>
 </header>
 
-<main>
+<main class="main">
 
-  <!-- UPLOAD SECTION -->
-  <div class="upload-section">
-    <div class="section-label">// Upload Log File</div>
-    <div class="upload-zone" id="dropzone">
-      <input type="file" id="fileInput" accept=".log,.txt,*"/>
-      <div class="upload-icon">📂</div>
-      <div class="upload-title">Drop your auth.log here</div>
-      <div class="upload-sub">or click to browse — supports /var/log/auth.log format</div>
-    </div>
+  <!-- UPLOAD -->
+  <section class="upload-panel" id="upload">
+    <div class="panel-header"><span class="panel-dot"></span><span class="panel-title">Analyze log files</span></div>
+    <label class="drop-zone" id="dropzone">
+      <input type="file" id="file-input" multiple/>
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Drop auth.log, access.log or named logs here</div>
+      <div class="drop-sub">or click to browse · several files are correlated together · max 32 MB</div>
+    </label>
     <div class="btn-row">
-      <button class="btn" onclick="document.getElementById('fileInput').click()">UPLOAD FILE</button>
-      <button class="btn btn-sample" onclick="runSample()">RUN SAMPLE LOG</button>
+      <button class="btn btn-primary" id="btn-sample" type="button">▶ Run sample log</button>
     </div>
-  </div>
+  </section>
 
-  <!-- ERROR -->
+  <div id="loading"><span class="spin"></span><span class="load-text">Parsing → detecting → correlating…</span></div>
   <div id="error-box"></div>
 
-  <!-- LOADING -->
-  <div id="loading">
-    <div class="spinner"></div>
-    ANALYZING LOG FILE...
-  </div>
-
-  <!-- RESULTS -->
   <div id="results">
 
-    <div class="results-header">
-      <div class="results-title">THREAT ANALYSIS REPORT</div>
-      <div class="results-time" id="report-time"></div>
-    </div>
+    <!-- KPIs -->
+    <section id="overview">
+      <div class="kpi-grid">
+        <div class="kpi red"><div class="kpi-label">Incidents</div><div class="kpi-value" id="k-incidents">0</div><div class="kpi-sub">alerts grouped by source</div></div>
+        <div class="kpi orange"><div class="kpi-label">Alerts</div><div class="kpi-value" id="k-alerts">0</div><div class="kpi-sub" id="k-alerts-sub"></div></div>
+        <div class="kpi red"><div class="kpi-label">Confirmed breaches</div><div class="kpi-value" id="k-breaches">0</div><div class="kpi-sub">login after brute force</div></div>
+        <div class="kpi purple"><div class="kpi-label">Flagged IPs</div><div class="kpi-value" id="k-flagged">0</div><div class="kpi-sub" id="k-flagged-sub"></div></div>
+        <div class="kpi yellow"><div class="kpi-label">SSH failures</div><div class="kpi-value" id="k-fails">0</div><div class="kpi-sub">failed login attempts</div></div>
+        <div class="kpi green"><div class="kpi-label">SSH logins</div><div class="kpi-value" id="k-success">0</div><div class="kpi-sub">successful logins</div></div>
+        <div class="kpi blue"><div class="kpi-label">Events parsed</div><div class="kpi-value" id="k-events">0</div><div class="kpi-sub" id="k-events-sub"></div></div>
+        <div class="kpi cyan"><div class="kpi-label">ATT&amp;CK techniques</div><div class="kpi-value" id="k-techniques">0</div><div class="kpi-sub" id="k-techniques-sub"></div></div>
+      </div>
 
-    <!-- STATS -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Total IPs</div>
-        <div class="stat-value" id="stat-ips">—</div>
-      </div>
-      <div class="stat-card warn">
-        <div class="stat-label">Failed Attempts</div>
-        <div class="stat-value" id="stat-failures">—</div>
-      </div>
-      <div class="stat-card danger">
-        <div class="stat-label">Flagged IPs</div>
-        <div class="stat-value" id="stat-flagged">—</div>
-      </div>
-      <div class="stat-card danger">
-        <div class="stat-label">Confirmed Breaches</div>
-        <div class="stat-value" id="stat-breaches">—</div>
-      </div>
-      <div class="stat-card ok">
-        <div class="stat-label">Successful Logins</div>
-        <div class="stat-value" id="stat-success">—</div>
-      </div>
-    </div>
-
-    <!-- CHARTS -->
-    <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-title">// TOP IPs BY FAILED ATTEMPTS</div>
-        <div class="chart-wrap">
-          <canvas id="barChart"></canvas>
+      <div class="charts-row">
+        <div class="chart-panel">
+          <div class="cp-header"><span class="cp-title">Most active IPs</span><span class="cp-badge">events</span></div>
+          <div class="chart-wrap"><canvas id="chart-ips"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="cp-header"><span class="cp-title">Alert severity</span><span class="cp-badge">alerts</span></div>
+          <div class="chart-wrap"><canvas id="chart-sev"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="cp-header"><span class="cp-title">ATT&amp;CK tactics</span><span class="cp-badge">alerts</span></div>
+          <div class="chart-wrap"><canvas id="chart-tactics"></canvas></div>
         </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">// ALERT SEVERITY DISTRIBUTION</div>
-        <div class="chart-wrap">
-          <canvas id="pieChart"></canvas>
+    </section>
+
+    <!-- INCIDENTS -->
+    <section id="incidents">
+      <div class="section-head"><h2>Incidents</h2><span class="cp-badge">click to expand · timeline + response</span></div>
+      <div class="inc-list" id="incident-list"></div>
+    </section>
+
+    <!-- ALERTS -->
+    <section class="alert-section" id="alerts">
+      <div class="tab-bar">
+        <button class="tab-btn active" type="button" data-tab="ssh">SSH <span class="tab-count tc-ssh" id="tc-ssh">0</span></button>
+        <button class="tab-btn" type="button" data-tab="http">HTTP <span class="tab-count tc-http" id="tc-http">0</span></button>
+        <button class="tab-btn" type="button" data-tab="dns">DNS <span class="tab-count tc-dns" id="tc-dns">0</span></button>
+      </div>
+      <div class="tab-panel active" id="tab-ssh"></div>
+      <div class="tab-panel" id="tab-http"></div>
+      <div class="tab-panel" id="tab-dns"></div>
+    </section>
+
+    <!-- RAW JSON -->
+    <section class="json-panel" id="raw">
+      <div class="json-head">
+        <span class="json-title">Raw JSON report</span>
+        <div>
+          <button class="btn-xs" type="button" id="btn-copy">Copy</button>
+          <button class="btn-xs" type="button" id="btn-download">Download</button>
         </div>
       </div>
-    </div>
-
-    <!-- ALERTS TABLE -->
-    <div class="table-card">
-      <div class="table-title">// FLAGGED IPs — BRUTE FORCE ALERTS</div>
-      <table>
-        <thead>
-          <tr>
-            <th>IP ADDRESS</th>
-            <th>FAILED ATTEMPTS</th>
-            <th>SEVERITY</th>
-            <th>FIRST SEEN</th>
-            <th>LAST SEEN</th>
-            <th>USERS TRIED</th>
-            <th>STATUS</th>
-          </tr>
-        </thead>
-        <tbody id="alerts-tbody"></tbody>
-      </table>
-    </div>
-
-    <!-- JSON VIEWER -->
-    <div class="json-card">
-      <div class="json-header">
-        <div class="json-title">// RAW JSON REPORT</div>
-        <button class="btn-copy" onclick="copyJSON()">COPY JSON</button>
-      </div>
-      <pre id="json-output"></pre>
-    </div>
-
-  </div><!-- /results -->
-
+      <pre id="json-out"></pre>
+    </section>
+  </div>
 </main>
 
-<script>
-// ── Clock ──
-function updateClock() {
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
-}
-updateClock();
-setInterval(updateClock, 1000);
-
-// ── Chart instances ──
-let barChart = null, pieChart = null;
-
-// ── Drag & Drop ──
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
-
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-dropzone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropzone.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file) uploadFile(file);
-});
-
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) uploadFile(fileInput.files[0]);
-});
-
-// ── Upload & Analyze ──
-function uploadFile(file) {
-  const formData = new FormData();
-  formData.append('logfile', file);
-  showLoading();
-  fetch('/analyze', { method: 'POST', body: formData })
-    .then(r => r.json())
-    .then(data => { hideLoading(); if (data.error) showError(data.error); else renderResults(data); })
-    .catch(err => { hideLoading(); showError(err.message); });
-}
-
-function runSample() {
-  showLoading();
-  fetch('/analyze-sample', { method: 'POST' })
-    .then(r => r.json())
-    .then(data => { hideLoading(); if (data.error) showError(data.error); else renderResults(data); })
-    .catch(err => { hideLoading(); showError(err.message); });
-}
-
-// ── UI State ──
-function showLoading() {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('results').style.display = 'none';
-  document.getElementById('error-box').style.display = 'none';
-}
-
-function hideLoading() {
-  document.getElementById('loading').style.display = 'none';
-}
-
-function showError(msg) {
-  const box = document.getElementById('error-box');
-  box.textContent = '// ERROR: ' + msg;
-  box.style.display = 'block';
-}
-
-// ── Render Results ──
-function renderResults(data) {
-  document.getElementById('results').style.display = 'block';
-  document.getElementById('report-time').textContent = data.generated_at;
-
-  // Stats
-  document.getElementById('stat-ips').textContent      = data.summary.total_ips;
-  document.getElementById('stat-failures').textContent  = data.summary.total_failures;
-  document.getElementById('stat-flagged').textContent   = data.summary.flagged_ips;
-  document.getElementById('stat-breaches').textContent  = data.summary.breaches;
-  document.getElementById('stat-success').textContent   = data.summary.total_successes;
-
-  // Charts
-  renderBarChart(data.chart_ips, data.chart_counts);
-  renderPieChart(data.severity_counts);
-
-  // Table
-  renderTable(data.alerts);
-
-  // JSON
-  document.getElementById('json-output').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-
-  // Scroll to results
-  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ── Bar Chart ──
-function renderBarChart(labels, values) {
-  if (barChart) barChart.destroy();
-  const ctx = document.getElementById('barChart').getContext('2d');
-  barChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Failed Attempts',
-        data: values,
-        backgroundColor: 'rgba(0,255,224,0.15)',
-        borderColor: 'rgba(0,255,224,0.8)',
-        borderWidth: 1,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#4a5568', font: { family: 'Share Tech Mono', size: 10 } }, grid: { color: '#1a2535' } },
-        y: { ticks: { color: '#4a5568', font: { family: 'Share Tech Mono', size: 10 } }, grid: { color: '#1a2535' } }
-      }
-    }
-  });
-}
-
-// ── Pie Chart ──
-function renderPieChart(counts) {
-  if (pieChart) pieChart.destroy();
-  const labels  = Object.keys(counts).filter(k => counts[k] > 0);
-  const values  = labels.map(k => counts[k]);
-  const colors  = { CRITICAL: '#ff4d6d', HIGH: '#ff8c42', MEDIUM: '#ffd166', LOW: '#06d6a0' };
-  const ctx = document.getElementById('pieChart').getContext('2d');
-  pieChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: labels.map(l => colors[l] + '33'),
-        borderColor:     labels.map(l => colors[l]),
-        borderWidth: 2,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#4a5568', font: { family: 'Share Tech Mono', size: 11 } } }
-      }
-    }
-  });
-}
-
-// ── Alerts Table ──
-function renderTable(alerts) {
-  const tbody = document.getElementById('alerts-tbody');
-  if (!alerts.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">No threats detected above threshold</td></tr>';
-    return;
-  }
-  tbody.innerHTML = alerts.map(a => `
-    <tr>
-      <td class="ip-cell">${a.ip}</td>
-      <td>${a.failed_count}</td>
-      <td><span class="sev-badge sev-${a.severity}">${a.severity}</span></td>
-      <td>${a.first_seen}</td>
-      <td>${a.last_seen}</td>
-      <td>${a.users_tried.length ? a.users_tried.join(', ') : '—'}</td>
-      <td>${a.post_success ? '<span class="breach-badge">⚠ BREACH</span>' : '<span style="color:var(--muted)">BLOCKED</span>'}</td>
-    </tr>
-  `).join('');
-}
-
-// ── JSON Syntax Highlight ──
-function syntaxHighlight(json) {
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
-    if (/^"/.test(match)) {
-      if (/:$/.test(match)) return `<span class="key">${match}</span>`;
-      return `<span class="str">${match}</span>`;
-    }
-    if (/true|false/.test(match)) return `<span class="bool">${match}</span>`;
-    return `<span class="num">${match}</span>`;
-  });
-}
-
-// ── Copy JSON ──
-function copyJSON() {
-  const text = document.getElementById('json-output').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('.btn-copy');
-    btn.textContent = 'COPIED!';
-    setTimeout(() => btn.textContent = 'COPY JSON', 2000);
-  });
-}
-</script>
+<!-- GEO MODAL -->
+<div id="geo-modal" role="dialog" aria-modal="true" aria-labelledby="geo-title">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-head-title" id="geo-title">IP intelligence</span>
+      <button class="modal-close" type="button" id="geo-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="geo-body"></div>
+  </div>
+</div>
 
 </body>
 </html>

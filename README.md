@@ -1,172 +1,184 @@
-# 🔍 SOC Log Analyzer — SSH Brute Force Detection
+# 🔍 SOC Log Analyzer — Multi-Source Threat Detection
 
-> A lightweight Python-based Security Operations tool for detecting SSH brute force attacks by analyzing Linux authentication logs.
+> A Python detection engine that parses Linux SSH, web server and DNS logs, detects attacks with time-window rules, maps them to **MITRE ATT&CK**, and correlates them into **incidents with a timeline and a response playbook** — from the terminal or a web dashboard.
 
 ---
 
 ## 📌 Objective
 
-Simulate and analyze a real SSH brute force attack scenario.  
-The tool parses `/var/log/auth.log`, identifies suspicious IPs, classifies their threat severity, and generates a structured JSON report — mimicking the workflow of a Tier-1 SOC analyst.
+Simulate real attacks in an isolated lab and build the tool a Tier-1 SOC analyst needs to triage them:
+**collect → parse → detect → enrich → correlate → respond**.
 
 ---
 
-## 🛠️ Tools Used
+## 🔎 What it detects
+
+| Detection | Log source | Logic | MITRE ATT&CK |
+|---|---|---|---|
+| SSH brute force | `auth.log` | ≥ 5 failures from one IP inside a 60 s sliding window | T1110.001 Password Guessing |
+| SSH password spraying | `auth.log` | ≥ 5 accounts, ≤ 2 tries each | T1110.003 Password Spraying |
+| **Login after brute force** | `auth.log` | Any `Accepted <method>` preceded by a brute force from the same IP (24 h) → always **CRITICAL** | T1078 Valid Accounts |
+| Web vulnerability scan | Apache/Nginx access log | Sensitive paths, scanner user agents (sqlmap, nikto…) in a 5 min window | T1595.002 Vulnerability Scanning |
+| Web exploitation | Apache/Nginx access log | SQL injection, XSS, path traversal, command injection payloads (URL-decoded) | T1190 Exploit Public-Facing App |
+| Secret exposure | Apache/Nginx access log | `/.env`, `/.git`, backups… answered **2xx** → severity raised | — |
+| More exploit signatures | Apache/Nginx access log | Log4Shell, Shellshock, file inclusion (LFI/RFI), SSRF — in the URL **or the User-Agent** | T1190 |
+| **Web login brute force** | Apache/Nginx access log | ≥ 10 failed login POSTs in 60 s; a 302 afterwards = login succeeded → **breach** | T1110.001 / T1078 |
+| Directory brute force | Apache/Nginx access log | ≥ 30 × 404 in 60 s (gobuster, dirb); lists the paths that answered | T1595.003 Wordlist Scanning |
+| **Webshell** | Apache/Nginx access log | Successful requests to a script with `?cmd=`-style parameters, or repeated POSTs to a script in an upload folder → command use = **breach** | T1505.003 Web Shell |
+| Large data transfer | Apache/Nginx access log | One response ≥ 50 MB or ≥ 500 MB total to one IP; data files (.sql, .bak, .zip) raise severity; .iso etc. are expected | T1041 |
+| Suspicious DNS | BIND query log | Threat-intel domain match, malware keywords (whole words), suspicious TLD + another signal | T1071.004 DNS |
+| DGA domains | BIND query log | Long, high-entropy labels (Shannon entropy ≥ 3.5) | T1568.002 Domain Generation Algorithms |
+| **DNS tunneling / exfiltration** | BIND query log | Per host + parent domain: ≥ 2 of many unique subdomains, long labels, encoded (hex/base32/base64) labels, TXT/NULL-heavy; estimates KB carried | T1048.003 Exfiltration Over Alternative Protocol |
+| **C2 beaconing** | BIND query log | ≥ 8 lookups of one domain at regular intervals (jitter ≤ 20 %, interval ≥ 10 s) | T1071.004 DNS |
+
+**Correlation:** all alerts from one IP become one incident. An incident spanning several ATT&CK tactics is escalated one level; a breach is always CRITICAL. Each incident gets a merged timeline and recommended response steps.
+
+**Enrichment:** local threat-intel IOC lists (`intel/`), optional IP geolocation (ip-api.com).
+
+**Parsing:** classic and RFC 3339 syslog timestamps, rsyslog `message repeated N times`, IPv4 + IPv6, `sshd` and `sshd-session`, real BIND `client IP#port` format, year inference for year-less syslog lines.
+
+---
+
+## 🏗️ Architecture
+
+```
+src/log_analyzer.py ─┐                     (CLI: terminal + JSON)
+                     ├──► soc_analyzer.analyze(lines)
+webapp/app.py ───────┘                     (Flask dashboard)
+
+soc_analyzer/
+├── parsers.py       raw lines → normalized Event objects
+├── detections.py    rules with sliding windows → alerts (severity, ATT&CK, evidence)
+├── intel.py         IOC blocklists from intel/
+├── mitre.py         ATT&CK technique / tactic table
+├── correlation.py   alerts → incidents (timeline + response playbook)
+├── engine.py        runs the pipeline, builds the report
+├── report.py        terminal output
+├── geo.py           optional IP geolocation
+└── config.py        every threshold, window and the allowlist
+```
+
+One engine, two interfaces: the CLI and the dashboard can never disagree.
+
+---
+
+## 🚀 Usage
+
+```bash
+git clone https://github.com/Bundy1-debug/soc-log-analysis.git
+cd soc-log-analysis
+
+# CLI — no dependencies needed
+python3 src/log_analyzer.py sample_auth.log
+python3 src/log_analyzer.py sample_auth.log samples/*.log      # all detection packs
+python3 src/log_analyzer.py /var/log/auth.log /var/log/apache2/access.log -o report.json
+python3 src/log_analyzer.py --help
+
+# Web dashboard
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r webapp/requirements.txt
+python3 webapp/app.py            # → http://127.0.0.1:5000
+#   SOC_DISABLE_GEO=1  → never send IPs to the geolocation API
+#   FLASK_DEBUG=1      → debugger (local development only)
+
+# Tests
+pip install -r requirements-dev.txt
+pytest
+```
+
+### Sample output (`sample_auth.log`, abridged)
+
+```
+  Incidents  : 5    Alerts : 11    Breaches : 1
+  Severity   : CRITICAL 2  HIGH 3  MEDIUM 2  LOW 4
+
+  [INC-001] 192.168.1.105  [CRITICAL]  ⚠ BREACH
+    Kill chain : Credential Access (SSH brute force) → Initial Access (Successful SSH login
+                 after brute force) → Reconnaissance (Web vulnerability scan) → Command and
+                 Control (Suspicious DNS lookups)
+    ATT&CK     : T1110.001, T1078, T1595.002, T1071.004
+    • CRITICAL Successful SSH login after brute force: Logged in as root after 12 failed attempts
+    • HIGH     Web vulnerability scan: 5 suspicious web requests; 1 sensitive file(s) answered 2xx
+    • HIGH     Suspicious DNS lookups: 1 lookup(s) of suspicious domains (known-bad per threat intel)
+    • MEDIUM   SSH brute force: 12 failed SSH logins (peak 12 in 60s) against 5 account(s)
+        accounts: root(8), admin(1), oracle(1), ubuntu(1), pi(1)
+    Response:
+      1. Block 192.168.1.105 at the firewall (or let fail2ban ban it)
+      3. Treat the host as compromised: isolate it from the network
+      4. Reset the password of root and kill their active sessions
+      ...
+```
+
+---
+
+## 🧪 Lab methodology
 
 | Tool | Purpose |
 |------|---------|
-| Python 3 | Log parsing & detection engine |
-| Hydra | Simulating the brute force attack (attacker side) |
-| Kali Linux | Attack simulation environment |
-| Ubuntu Server | Target machine (victim side) |
-| `/var/log/auth.log` | Primary log source for analysis |
-
----
-
-## 🧪 Methodology
-
-### Step 1 — Set up the lab
-
-- Attacker machine: Kali Linux (VM)
-- Target machine: Ubuntu Server (VM)
-- Network: Host-only adapter (isolated)
-
-### Step 2 — Simulate the attack
+| Kali Linux (VM) | Attacker |
+| Ubuntu Server (VM) | Target — OpenSSH, Apache, BIND |
+| Hydra | SSH brute force simulation |
+| Host-only network | Isolation between VMs |
 
 ```bash
-# On Kali Linux — launch SSH brute force with Hydra
+# On Kali — SSH brute force against the lab target only
 hydra -l root -P /usr/share/wordlists/rockyou.txt ssh://TARGET_IP -t 4
+
+# On the Ubuntu target — collect the evidence
+sudo cp /var/log/auth.log ~/evidence/
 ```
 
-> ⚠️ Only perform this in a controlled, isolated lab environment.
-
-### Step 3 — Collect the logs
-
-```bash
-# On the Ubuntu target — view authentication logs
-sudo cat /var/log/auth.log | grep "Failed password"
-```
-
-### Step 4 — Run the analyzer
-
-```bash
-# Clone the repo
-git clone https://github.com/YOUR_USERNAME/soc-log-analysis.git
-cd soc-log-analysis
-
-# Run against real logs (requires sudo or log access)
-python3 src/log_analyzer.py /var/log/auth.log
-
-# OR use the included sample log for demo
-python3 src/log_analyzer.py sample_auth.log
-```
+> ⚠️ Only perform attacks in a controlled, isolated lab environment.
 
 ---
 
-## 🔎 Findings
+## 🔐 Security of the tool itself
 
-### What the tool detects
+Log lines are written by attackers, so the dashboard treats them as hostile:
 
-| Indicator | Description |
-|-----------|-------------|
-| `Failed password` | Multiple authentication failures from a single IP |
-| `Invalid user` | Login attempts using non-existent usernames |
-| Repeated attempts | Same IP appearing >5 times in a short window |
-| Post-breach success | Successful login detected **after** brute force activity ⚠️ |
-
-### Severity Classification
-
-| Severity | Threshold |
-|----------|-----------|
-| 🔴 CRITICAL | 100+ failed attempts |
-| 🟠 HIGH | 30–99 failed attempts |
-| 🟡 MEDIUM | 10–29 failed attempts |
-| 🔵 LOW | 5–9 failed attempts |
-
-### Sample output (real run on `sample_auth.log`)
-
-```
-============================================================
-      SOC LOG ANALYZER — BRUTE FORCE DETECTION REPORT
-============================================================
-  Generated : 2026-03-24 21:31:58
-  Threshold : 5 failed attempts
-
-  Total IPs with failed logins : 3
-  Total failed attempts        : 21
-  Successful logins            : 3
-  Suspicious IPs flagged       : 2
-
-  FLAGGED IPs
-  ────────────────────────────────────────────────────────
-
-  [1] 192.168.1.105
-       Severity     : MEDIUM
-       Failed tries : 12
-       First seen   : Mar 20 10:01:22
-       Last seen    : Mar 20 10:01:44
-       Users tried  : oracle
-       ⚠ WARNING: Successful login detected from this IP!
-
-  [2] 10.0.0.23
-       Severity     : LOW
-       Failed tries : 6
-       First seen   : Mar 20 10:05:01
-       Last seen    : Mar 20 10:05:11
-       Users tried  : postgres
-============================================================
-```
+- **No `innerHTML` with data** — every value is rendered with `textContent` (a malicious user agent like `<img src=x onerror=…>` is shown as text, never executed). A test enforces this.
+- **Content-Security-Policy** blocks inline scripts as a second layer; Chart.js is pinned with Subresource Integrity.
+- Flask **debug mode is off** by default (the Werkzeug debugger allows remote code execution) and the app binds to `127.0.0.1`.
+- Errors are logged server-side; clients get a generic message. `/geoip/<ip>` validates its input.
 
 ---
 
-## 📁 Project Structure
+## 🎛️ Tuning and false positives
 
-```
-soc-log-analysis/
-│
-├── README.md               # This file
-├── sample_auth.log         # Sample log for demo (no real data)
-├── report_output.json      # Auto-generated JSON report
-├── Tools-used.txt          # Full tools list
-│
-├── src/
-│   └── log_analyzer.py     # Main detection script
-│
-└── Screenshots/            # Lab environment screenshots
-```
+All thresholds live in `soc_analyzer/config.py`. Main levers:
 
----
+- `SSH_FAIL_THRESHOLD` / `SSH_WINDOW_SECONDS` — sensitivity vs. noise
+- `ALLOWLIST_IPS` — your own admin hosts and authorized scanners
+- `intel/bad_ips.txt`, `intel/bad_domains.txt` — IOC feeds (demo entries; replace with a real feed)
+- Scripted clients (`curl`, `python-requests`) are context, not alerts on their own; a suspicious TLD alone never alerts
 
-## 💡 Lessons Learned
+## ⚠️ Known limitations
 
-- SSH brute force attacks generate **hundreds of log entries** — automation is essential for detection at scale
-- A compromised login **after** repeated failures is a critical indicator of successful breach
-- Threshold tuning matters: too low = false positives, too high = missed attacks
-- Real SOC analysts combine log analysis with SIEM tools (Splunk, ELK) for this at scale
-- Isolating attacker & victim in a host-only network is critical for safe lab work
+- Batch analysis of files (no real-time `tail -f` mode yet)
+- Correlation is by IP only; in DNS logs the IP is the *querying internal host*, not an attacker
+- Timezones are dropped: syslog has none, so all times are compared as wall-clock
+- Low-and-slow attacks below the window threshold are not detected
 
----
+## 🗺️ Roadmap
 
-## 🚀 Possible Improvements
-
-- [ ] Add geolocation lookup per IP (using `ip-api.com`)
-- [ ] Export report to PDF
-- [ ] Add real-time monitoring mode (`tail -f`)
-- [ ] Integrate with a SIEM (Splunk/ELK forwarding)
-- [ ] Build a web dashboard with Flask
+- [ ] Real-time mode with automatic blocking (fail2ban-style)
+- [ ] Export detections as Sigma rules
+- [ ] Ship alerts to Elastic/Splunk (ECS JSON)
+- [ ] AbuseIPDB reputation lookup
+- [ ] Docker image
 
 ---
 
 ## ⚠️ Disclaimer
 
-This project is for **educational purposes only**.  
-All attack simulations were performed in an **isolated, controlled lab environment**.  
+This project is for **educational purposes only**.
+All attack simulations were performed in an **isolated, controlled lab environment**.
 Never run brute force tools against systems you do not own or have explicit permission to test.
 
 ---
 
 ## 👤 Author
 
-**[Daoudi Haitham]**  
-Cybersecurity Student | Aspiring SOC Analyst  
+**[Daoudi Haitham]**
+Cybersecurity Student | Aspiring SOC Analyst
 [LinkedIn](https://www.linkedin.com/in/haitham-daoudi-905a34251/) · [GitHub](https://github.com/Bundy1-debug)

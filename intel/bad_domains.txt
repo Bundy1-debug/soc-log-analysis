@@ -1,0 +1,4 @@
+# Demo IOC feed — known-malicious domains (one per line, subdomains match too).
+# Replace with a real feed (e.g. abuse.ch URLhaus / ThreatFox) in production.
+malware-c2.ru
+ransomware-drop.ru

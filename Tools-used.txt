@@ -19,6 +19,11 @@ ANALYSIS TOOLS
 - grep / awk          : Manual log filtering (Linux CLI)
 - json (stdlib)       : Structured report output
 - re (stdlib)         : Regex-based pattern matching
+- ipaddress (stdlib)  : IPv4/IPv6 validation
+- Flask              : Web dashboard backend
+- Chart.js           : Dashboard charts
+- pytest             : Unit tests for parsers and detections
+- MITRE ATT&CK       : Technique mapping for every alert
 
 VIRTUALIZATION
 --------------

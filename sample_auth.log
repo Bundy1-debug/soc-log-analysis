@@ -24,3 +24,35 @@ Mar 20 10:20:02 ubuntu sshd[1301]: Failed password for vagrant from 172.16.5.50 
 Mar 20 10:20:04 ubuntu sshd[1302]: Failed password for vagrant from 172.16.5.50 port 60003 ssh2
 Mar 20 10:30:00 ubuntu sshd[1400]: Accepted password for alice from 192.168.1.10 port 22111 ssh2
 Mar 20 10:31:00 ubuntu sshd[1401]: Accepted password for bob from 192.168.1.11 port 22222 ssh2
+192.168.1.105 - - [20/Mar/2024:10:01:50 +0000] "GET /admin HTTP/1.1" 404 512 "-" "sqlmap/1.7"
+192.168.1.105 - - [20/Mar/2024:10:01:51 +0000] "GET /wp-login.php HTTP/1.1" 200 1024 "-" "Mozilla/5.0"
+192.168.1.105 - - [20/Mar/2024:10:01:52 +0000] "POST /wp-login.php HTTP/1.1" 200 512 "-" "Mozilla/5.0"
+192.168.1.105 - - [20/Mar/2024:10:01:53 +0000] "GET /.env HTTP/1.1" 200 128 "-" "curl/7.68"
+192.168.1.105 - - [20/Mar/2024:10:01:54 +0000] "GET /phpmyadmin HTTP/1.1" 404 256 "-" "python-requests/2.28"
+10.0.0.23 - - [20/Mar/2024:10:05:20 +0000] "GET /shell.php HTTP/1.1" 404 128 "-" "Nikto/2.1.6"
+10.0.0.23 - - [20/Mar/2024:10:05:21 +0000] "GET /etc/passwd HTTP/1.1" 400 64 "-" "curl/7.68"
+10.0.0.23 - - [20/Mar/2024:10:05:22 +0000] "GET /admin/config HTTP/1.1" 403 256 "-" "sqlmap/1.7"
+10.0.0.23 - - [20/Mar/2024:10:05:23 +0000] "POST /login HTTP/1.1" 401 128 "-" "python-requests/2.28"
+10.0.0.23 - - [20/Mar/2024:10:05:24 +0000] "GET /backup.zip HTTP/1.1" 404 64 "-" "wget/1.20"
+203.0.113.42 - - [20/Mar/2024:10:10:00 +0000] "GET /index.php?id=1' OR '1'='1 HTTP/1.1" 500 256 "-" "sqlmap/1.7"
+203.0.113.42 - - [20/Mar/2024:10:10:01 +0000] "GET /search?q=<script>alert(1)</script> HTTP/1.1" 200 512 "-" "Mozilla/5.0"
+203.0.113.42 - - [20/Mar/2024:10:10:02 +0000] "GET /../../../etc/passwd HTTP/1.1" 400 64 "-" "curl/7.68"
+Mar 20 10:02:00 ubuntu named[2200]: query: malware-c2.ru IN A + (192.168.1.105)
+Mar 20 10:02:05 ubuntu named[2201]: query: evil-domain.xyz IN A + (192.168.1.105)
+Mar 20 10:02:10 ubuntu named[2202]: query: google.com IN A + (192.168.1.10)
+Mar 20 10:02:15 ubuntu named[2203]: query: update.microsoft.com IN A + (192.168.1.11)
+Mar 20 10:05:30 ubuntu named[2204]: query: botnet-tracker.cc IN A + (10.0.0.23)
+Mar 20 10:05:35 ubuntu named[2205]: query: phishing-site.tk IN A + (10.0.0.23)
+Mar 20 10:05:40 ubuntu named[2206]: query: cdn.cloudflare.com IN A + (10.0.0.23)
+Mar 20 10:10:05 ubuntu named[2207]: query: ransomware-drop.ru IN A + (203.0.113.42)
+Mar 20 10:10:10 ubuntu named[2208]: query: c2-server.onion.to IN A + (203.0.113.42)
+Mar 20 10:05:13 ubuntu sshd[1206]: message repeated 4 times: [ Failed password for root from 10.0.0.23 port 55006 ssh2]
+Mar 20 10:15:00 ubuntu sshd[1500]: Failed password for invalid user deploy from 198.51.100.7 port 41001 ssh2
+Mar 20 10:15:02 ubuntu sshd[1501]: Failed password for invalid user jenkins from 198.51.100.7 port 41002 ssh2
+Mar 20 10:15:04 ubuntu sshd[1502]: Failed password for invalid user git from 198.51.100.7 port 41003 ssh2
+Mar 20 10:15:06 ubuntu sshd[1503]: Failed password for ubuntu from 198.51.100.7 port 41004 ssh2
+Mar 20 10:15:08 ubuntu sshd[1504]: Failed password for invalid user backup from 198.51.100.7 port 41005 ssh2
+Mar 20 10:15:10 ubuntu sshd[1505]: Failed password for invalid user ftpuser from 198.51.100.7 port 41006 ssh2
+Mar 20 10:40:00 ubuntu sshd[1600]: Accepted publickey for alice from 192.168.1.10 port 22333 ssh2
+Mar 20 11:00:00 ubuntu named[2300]: client @0x7f3a2c 192.168.1.50#53211 (xk7q2mzp9wtr4vbn.top): query: xk7q2mzp9wtr4vbn.top IN A +E(0)K (10.0.0.1)
+Mar 20 11:00:05 ubuntu named[2301]: client @0x7f3a2c 192.168.1.50#53214 (www.google.com): query: www.google.com IN A +E(0)K (10.0.0.1)
