@@ -1,6 +1,16 @@
 # 🔍 SOC Log Analyzer — Multi-Source Threat Detection
 
-> A Python detection engine that parses Linux SSH, web server and DNS logs, detects attacks with time-window rules, maps them to **MITRE ATT&CK**, and correlates them into **incidents with a timeline and a response playbook** — from the terminal or a web dashboard.
+> A Python detection engine that parses Linux SSH, web server, DNS and `auditd` logs, detects attacks with time-window and statistical rules, maps them to **MITRE ATT&CK**, and correlates them into **incidents with a timeline and a response playbook** — from the terminal or a web dashboard.
+
+---
+
+## 🖥️ Dashboard
+
+| Overview — KPIs & ATT&CK coverage | Incident — kill chain & timeline |
+|---|---|
+| ![Dashboard overview](docs/images/dashboard-overview.jpg) | ![Incident detail](docs/images/dashboard-incident.jpg) |
+
+Upload one or more logs (or click **Run sample log**); alerts are grouped into incidents, each expandable to a timeline and recommended response.
 
 ---
 
