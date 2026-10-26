@@ -39,6 +39,8 @@ Simulate real attacks in an isolated lab and build the tool a Tier-1 SOC analyst
 | **Credential access** (EDR) | `auditd` exec | Reading `/etc/shadow`, SSH/cloud private keys | T1003.008 / T1552.004 |
 | **Persistence** (EDR) | `auditd` exec | crontab, `authorized_keys`, systemd/init changes | T1053.003 / T1098.004 / T1543.002 |
 | **Defense evasion** (EDR) | `auditd` exec | Clearing `/var/log`, `history -c`, unsetting HISTFILE | T1070.002 / T1070.003 |
+| **Volume anomaly** | any | A source whose event count is a statistical outlier (z ≥ 3) vs its peers | — (behavioral) |
+| **New source / domain** | any | An IP or domain seen only after a learned baseline period | — (behavioral) |
 
 **Correlation:** all alerts from one IP become one incident. An incident spanning several ATT&CK tactics is escalated one level; a breach is always CRITICAL. Each incident gets a merged timeline and recommended response steps.
 
@@ -62,6 +64,7 @@ soc_analyzer/
 ├── detections_dns.py  DNS tunneling / exfiltration, C2 beaconing
 ├── detections_host.py sudo/su abuse, new accounts, privilege grants
 ├── detections_edr.py  auditd command rules: reverse shell, persistence, log wiping
+├── anomaly.py       statistical outliers: volume z-score, first-seen entities (UEBA)
 ├── intel.py         IOC blocklists from intel/
 ├── mitre.py         ATT&CK technique / tactic table
 ├── correlation.py   alerts → incidents (timeline + response playbook)

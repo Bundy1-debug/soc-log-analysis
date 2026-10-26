@@ -89,6 +89,10 @@ PLAYBOOK = {
     "EDR_CLEAR_LOGS": [
         "Logs may be incomplete: switch to other evidence (auditd, EDR, network, backups)",
     ],
+    "_ANOMALY": [
+        "Triage {ip}: anomalies are leads, not confirmed attacks — check what the activity was",
+        "Compare against a longer baseline and the asset's normal role before escalating",
+    ],
 }
 
 
@@ -101,6 +105,8 @@ def _actions(alert):
         keys.append("WEB_LOGIN_SUCCESS")
     if alert["type"].startswith("EDR_"):               # generic EDR steps, plus any type-specific ones
         keys = ["_EDR"] + [k for k in [alert["type"]] if k in PLAYBOOK]
+    if alert["type"].startswith("ANOMALY_"):
+        keys = ["_ANOMALY"]
     return [step.format(ip=alert["ip"],
                         parent=d.get("parent_domain", ""),
                         scripts=", ".join(d.get("scripts", [])),

@@ -33,6 +33,15 @@ SU_FAIL_THRESHOLD      = 3      # failed `su` attempts by one user in the same w
 # ── EDR-style host commands (auditd) ─────────────────────────────
 # One matching command is enough to alert; see soc_analyzer/detections_edr.py for the rules.
 
+# ── Anomaly detection (statistical, not signatures) ──────────────
+ANOM_MIN_ENTITIES  = 8      # need this many IPs before a volume z-score is meaningful
+ANOM_MIN_EVENTS    = 50     # an outlier must also be this busy in absolute terms
+ANOM_Z             = 3.0    # z-score (std devs above the mean) to call it an outlier
+ANOM_MIN_SPAN_HOURS = 2     # first-seen needs a time range at least this long ...
+ANOM_BASELINE_FRAC = 0.6    # ... split here into baseline (earlier) and recent (later)
+ANOM_MIN_BASELINE  = 30     # ... with at least this many baseline events to learn from
+ANOM_NEW_MIN       = 3      # a new entity must appear at least this often to be worth an alert
+
 # ── DNS ──────────────────────────────────────────────────────────
 DNS_THRESHOLD          = 1      # any suspicious lookup is worth an alert
 DGA_MIN_LENGTH         = 12     # labels shorter than this are never called DGA

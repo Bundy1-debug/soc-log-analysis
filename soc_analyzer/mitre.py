@@ -32,6 +32,9 @@ TECHNIQUES = {
 
 
 def technique(technique_id):
+    if technique_id is None:                 # behavioral anomaly: no single ATT&CK technique
+        return {"technique_id": "N/A", "technique": "Behavioral anomaly",
+                "tactic_id": "-", "tactic": "Anomaly", "url": ""}
     name, tactic_id, tactic = TECHNIQUES[technique_id]
     return {
         "technique_id": technique_id,
