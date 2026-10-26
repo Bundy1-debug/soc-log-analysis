@@ -6,11 +6,19 @@
 
 ## 🖥️ Dashboard
 
-| Overview — KPIs & ATT&CK coverage | Incident — kill chain & timeline |
-|---|---|
-| ![Dashboard overview](docs/images/dashboard-overview.jpg) | ![Incident detail](docs/images/dashboard-incident.jpg) |
+A dark **SOC console** built with **React + Vite**, served by Flask. Upload one or more logs
+(or click **Run sample logs**); alerts are grouped into incidents with a visual kill chain,
+an attack map, and a MITRE ATT&CK coverage matrix.
 
-Upload one or more logs (or click **Run sample log**); alerts are grouped into incidents, each expandable to a timeline and recommended response.
+| Overview — KPIs, activity & severity | Incident — visual kill chain & timeline |
+|---|---|
+| ![Dashboard overview](docs/images/dashboard-overview.jpg) | ![Incident kill chain](docs/images/dashboard-incident.jpg) |
+
+**MITRE ATT&CK coverage matrix** — techniques observed in the current analysis, lit by severity:
+
+![ATT&CK matrix](docs/images/dashboard-matrix.jpg)
+
+Views: Overview · Incidents (kill chain) · Alerts (per-source tabs) · Attack Map (geolocation) · ATT&CK Matrix · Raw JSON.
 
 ---
 
@@ -100,12 +108,16 @@ python3 src/log_analyzer.py sample_auth.log samples/*.log      # all detection p
 python3 src/log_analyzer.py /var/log/auth.log /var/log/apache2/access.log -o report.json
 python3 src/log_analyzer.py --help
 
-# Web dashboard
+# Web dashboard (the built React app is committed, so this just works)
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r webapp/requirements.txt
 python3 webapp/app.py            # → http://127.0.0.1:5000
 #   SOC_DISABLE_GEO=1  → never send IPs to the geolocation API
 #   FLASK_DEBUG=1      → debugger (local development only)
+
+# Rebuild the frontend after changing it (needs Node 18+)
+cd frontend && npm install && npm run build   # outputs to webapp/static/app/
+npm run dev                                   # hot-reload dev server, proxies the API to :5000
 
 # Tests
 pip install -r requirements-dev.txt

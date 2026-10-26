@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request, send_from_directory
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))                       # make soc_analyzer importable
@@ -24,6 +24,7 @@ from soc_analyzer.geo import geolocate              # noqa: E402
 SAMPLE_LOG = ROOT / "sample_auth.log"
 SAMPLE_DIR = ROOT / "samples"                       # one log per detection pack
 GEO_ENABLED = os.environ.get("SOC_DISABLE_GEO") != "1"
+APP_DIST = Path(__file__).resolve().parent / "static" / "app"   # built React frontend
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024    # 32 MB upload limit
@@ -32,7 +33,7 @@ log = logging.getLogger(__name__)
 # Log content is attacker-controlled. The page escapes it, and this policy is a second
 # layer: even if some markup slipped through, inline scripts would not run.
 CSP = ("default-src 'self'; "
-       "script-src 'self' https://cdn.jsdelivr.net; "
+       "script-src 'self'; "
        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
        "font-src https://fonts.gstatic.com; "
        "img-src 'self' data:; "
@@ -60,7 +61,10 @@ def run_analysis(lines, sources):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    if (APP_DIST / "index.html").exists():
+        return send_from_directory(APP_DIST, "index.html")
+    return ("<h1>SOC Analyzer</h1><p>Frontend not built. Run "
+            "<code>cd frontend &amp;&amp; npm install &amp;&amp; npm run build</code>.</p>"), 200
 
 
 @app.route("/analyze", methods=["POST"])

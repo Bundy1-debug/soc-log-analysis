@@ -20,10 +20,22 @@ def test_index_has_security_headers(client):
     assert resp.headers["X-Content-Type-Options"] == "nosniff"
 
 
-def test_dashboard_never_uses_innerhtml():
-    js = (webapp.ROOT / "webapp" / "static" / "app.js").read_text()
-    code = "\n".join(line for line in js.splitlines() if not line.strip().startswith("*"))
-    assert ".innerHTML" not in code
+def test_frontend_renders_log_data_safely():
+    """
+    The React frontend renders attacker-controlled log fields through JSX text nodes.
+    The only raw-HTML sink is the JSON highlighter in RawJson.jsx, and it must escape
+    &, < and > before inserting. Fail if raw HTML is injected anywhere else.
+    """
+    src = webapp.ROOT / "frontend" / "src"
+    offenders = []
+    for path in src.rglob("*.jsx"):
+        text = path.read_text()
+        if "dangerouslySetInnerHTML" in text and path.name != "RawJson.jsx":
+            offenders.append(path.name)
+    assert offenders == [], f"unescaped HTML sink(s): {offenders}"
+
+    raw = (src / "components" / "RawJson.jsx").read_text()
+    assert 'replace(/&/g, "&amp;")' in raw and 'replace(/</g, "&lt;")' in raw
 
 
 def test_sample_route(client):

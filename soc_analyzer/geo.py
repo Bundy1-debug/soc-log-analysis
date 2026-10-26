@@ -11,7 +11,7 @@ import os
 import requests
 
 API = "http://ip-api.com/batch"
-FIELDS = "status,query,country,countryCode,regionName,city,isp,org,as"
+FIELDS = "status,query,country,countryCode,regionName,city,isp,org,as,lat,lon"
 _cache = {}
 
 PRIVATE = {"country": "Private / Reserved", "countryCode": "LAN", "region": "—", "city": "—",
@@ -49,6 +49,7 @@ def geolocate(ips):
                     "country": d.get("country", ""), "countryCode": d.get("countryCode", ""),
                     "region": d.get("regionName", ""), "city": d.get("city", ""),
                     "isp": d.get("isp", ""), "org": d.get("org", ""), "as": d.get("as", ""),
+                    "lat": d.get("lat"), "lon": d.get("lon"),
                     "private": False,
                 }
     return result

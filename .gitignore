@@ -15,3 +15,7 @@ uploads/
 *.log
 !sample_auth.log
 !samples/*.log
+
+# Frontend
+frontend/node_modules/
+frontend/.vite/
